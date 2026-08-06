@@ -26,6 +26,7 @@ export function StockSheetForm() {
     watch,
     formState: { errors },
   } = useForm<StockSheetFormValues>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(stockSheetSchema) as any,
     defaultValues: {
       design_name: "",
@@ -156,6 +157,7 @@ export function StockSheetForm() {
   };
 
   return (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-8 pb-10">
       {globalError && (
         <div className="bg-[#E60000]/10 border border-[#E60000]/20 text-[#E60000] p-4 rounded text-sm font-medium">
