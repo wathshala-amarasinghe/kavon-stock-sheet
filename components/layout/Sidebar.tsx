@@ -18,7 +18,7 @@ export function Sidebar({ userEmail }: SidebarProps) {
 
   const navItems = [
     { name: "Home", href: "/", icon: Home, disabled: false },
-    { name: "Create Stock Sheet", href: "/create", icon: PlusCircle, disabled: true }, // Placeholder for now
+    { name: "Create Stock Sheet", href: "/stock-sheets/new", icon: PlusCircle, disabled: false },
   ];
 
   const closeSidebar = () => setIsOpen(false);

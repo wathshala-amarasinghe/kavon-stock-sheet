@@ -21,12 +21,13 @@
 - [x] Implement responsive design and accessible form controls.
 - **Acceptance Criteria**: UI matches design references and handles client-side validation (with clear loading/error states).
 
-## Phase 4: Integration & Server Actions (Backend)
-**Goal**: Connect the frontend forms to the database and storage.
-- Implement Server Actions for saving, editing, and archiving stock sheets.
-- Ensure server-side total recalculation.
-- Handle image uploads to private storage.
-- **Acceptance Criteria**: Admin can successfully create, edit, view, and archive a stock sheet.
+## Phase 4: Integration & Server Actions (Backend) [COMPLETED]
+**Goal**: Connect the form to the database securely.
+- [x] Create server action `createStockSheet` to handle form submission.
+- [x] Securely handle image uploads using signed URLs and random UUIDs.
+- [x] Implement the `create_stock_sheet_transaction` Postgres function to ensure the stock sheet and quantities save atomically.
+- [x] Revalidate paths to update the dashboard.
+- **Acceptance Criteria**: Form correctly saves data and image; errors are gracefully handled without leaving orphan files.
 
 ## Phase 5: PDF Generation
 **Goal**: Allow preview and download of branded PDFs.

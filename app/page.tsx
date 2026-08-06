@@ -5,6 +5,7 @@ import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { StockSheet, StockSheetQuantity } from "@/types";
 import { PlusCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export const instant = false;
 
@@ -98,10 +99,12 @@ export default async function Home() {
               </p>
             </div>
             
-            <Button className="bg-[#E60000] hover:bg-[#CC0000] text-white font-bold tracking-wider uppercase" disabled>
-              <PlusCircle size={18} className="mr-2" />
-              Create New Stock Sheet
-            </Button>
+            <Link href="/stock-sheets/new">
+              <Button className="bg-[#E60000] hover:bg-[#CC0000] text-white font-bold tracking-wider uppercase">
+                <PlusCircle size={18} className="mr-2" />
+                Create New Stock Sheet
+              </Button>
+            </Link>
           </div>
 
           <DashboardClient initialSheets={processedSheets} />

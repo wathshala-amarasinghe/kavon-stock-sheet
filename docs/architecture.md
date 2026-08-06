@@ -1,40 +1,27 @@
-# Architecture
+# KAVON Stock Sheet Architecture
+
+## Overview
+The KAVON Stock Sheet application is built on Next.js 16 using the App Router, with Supabase serving as the backend (Database, Auth, and Storage).
 
 ## Technology Stack
-- **Framework**: Next.js App Router (React)
-- **Language**: Strict TypeScript
-- **Styling**: Tailwind CSS, shadcn/ui components
-- **Backend & Database**: Supabase (PostgreSQL, Auth, Storage)
-- **Forms & Validation**: React Hook Form, Zod
-- **PDF Generation**: `@react-pdf/renderer`
-- **Testing**: Vitest (Unit/Integration), Playwright (E2E)
-- **Deployment**: Vercel-compatible
+- **Framework**: Next.js 16 (App Router, Turbopack)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Components**: shadcn/ui (Radix UI + Tailwind)
+- **Database**: PostgreSQL (via Supabase)
+- **Authentication**: Supabase Auth (SSR configuration)
+- **Storage**: Supabase Storage (Private Buckets)
 
-## Proposed File Structure
-```text
-app/
-  (auth)/
-    login/
-      page.tsx
-  (dashboard)/
-    page.tsx       # Home screen
-    create/
-      page.tsx     # Create stock sheet form
-    [id]/
-      page.tsx     # View/edit stock sheet
-  api/             # Next.js API routes (if needed for secure processing)
-components/
-  ui/              # shadcn/ui components
-  forms/           # Form components (StockSheetForm, etc.)
-  pdf/             # PDF generation components
-  layout/          # Header, Sidebar, etc.
-lib/
-  supabase/        # Supabase client setup (browser and server)
-  utils.ts         # Utility functions
-  validations.ts   # Zod schemas
-types/             # TypeScript type definitions
-docs/              # Project documentation
-```
+## Data Models
+- `stock_sheets`: The primary table storing details about an order (Reference number, design name, garment colour, image path, status).
+- `stock_sheet_quantities`: Stores size quantities for each stock sheet (S, M, L, XL, XXL).
+- **PostgreSQL Functions**: We use a transactional `create_stock_sheet_transaction` function in `202608060002_create_stock_sheet_function.sql` to ensure atomicity when inserting a stock sheet and its five quantities simultaneously.
+
+## Authentication
+Authentication relies on the standard `@supabase/ssr` library.
+1. The client sends login credentials to Next.js Server Actions.
+2. The server action calls `signInWithPassword` and Supabase sets a session cookie.
+3. The `middleware` (via `proxy.ts`) ensures unauthenticated users are forcefully redirected to `/login` before accessing the dashboard.
 
 ## Data Flow
 - **Client**: Forms capture user input. React Hook Form manages state, Zod handles client-side validation.
