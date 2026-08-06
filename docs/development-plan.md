@@ -14,11 +14,11 @@
 - [ ] Implement server-side logic for total calculation.
 - **Acceptance Criteria**: Database schema is applied; storage bucket accepts only valid files from authenticated users.
 
-## Phase 3: Dashboard & Form UI (Frontend)
+## Phase 3: Dashboard & Form UI (Frontend) [COMPLETED]
 **Goal**: Build the user interface for viewing and creating stock sheets.
-- Implement the Home screen listing saved sheets.
-- Build the Stock Sheet form using React Hook Form, Zod, and shadcn/ui.
-- Implement responsive design and accessible form controls.
+- [x] Implement the Home screen listing saved sheets.
+- [ ] Build the Stock Sheet form using React Hook Form, Zod, and shadcn/ui.
+- [x] Implement responsive design and accessible form controls.
 - **Acceptance Criteria**: UI matches design references and handles client-side validation (with clear loading/error states).
 
 ## Phase 4: Integration & Server Actions (Backend)
