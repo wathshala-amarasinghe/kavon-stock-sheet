@@ -4,15 +4,17 @@ import { useState } from "react";
 import { Search, PackageX } from "lucide-react";
 import { StockSheet } from "@/types";
 import { StockSheetCard } from "./StockSheetCard";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 
 interface DashboardClientProps {
   initialSheets: StockSheet[];
+  currentStatus: string;
 }
 
-export function DashboardClient({ initialSheets }: DashboardClientProps) {
+export function DashboardClient({ initialSheets, currentStatus }: DashboardClientProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "ARCHIVED">("ALL");
 
   // If the database is completely empty (no sheets created ever)
   if (initialSheets.length === 0) {
@@ -25,11 +27,10 @@ export function DashboardClient({ initialSheets }: DashboardClientProps) {
     );
   }
 
-  // Filter sheets based on status and search query
+  // Filter sheets based on search query (status is already filtered by server if not ALL)
+  // Wait, if server returns 'all', they are all here. The server already filtered them! 
+  // We only need to filter by search text locally.
   const filteredSheets = initialSheets.filter((sheet) => {
-    const matchesStatus = statusFilter === "ALL" || sheet.status === statusFilter;
-    
-    if (!matchesStatus) return false;
     
     const searchLower = search.toLowerCase();
     const matchesSearch = 
@@ -56,12 +57,12 @@ export function DashboardClient({ initialSheets }: DashboardClientProps) {
         </div>
         
         <div className="flex w-full sm:w-auto bg-black p-1 rounded-md border border-gray-800">
-          {(["ALL", "ACTIVE", "ARCHIVED"] as const).map((status) => (
+          {(["ACTIVE", "ARCHIVED", "ALL"] as const).map((status) => (
             <button
               key={status}
-              onClick={() => setStatusFilter(status)}
+              onClick={() => router.push(`/?status=${status.toLowerCase()}`)}
               className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold uppercase tracking-wider rounded transition-colors ${
-                statusFilter === status
+                currentStatus.toLowerCase() === status.toLowerCase()
                   ? "bg-[#E60000] text-white"
                   : "text-gray-400 hover:text-white hover:bg-gray-800"
               }`}
@@ -70,6 +71,11 @@ export function DashboardClient({ initialSheets }: DashboardClientProps) {
             </button>
           ))}
         </div>
+      </div>
+      
+      {/* Counts Header */}
+      <div className="text-gray-400 text-sm font-medium tracking-widest uppercase mb-4">
+        Showing {filteredSheets.length} {currentStatus === "all" ? "Total" : currentStatus} sheet{filteredSheets.length !== 1 ? 's' : ''}
       </div>
 
       {/* Results or Empty State */}

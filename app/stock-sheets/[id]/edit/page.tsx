@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { EditStockSheetForm } from "@/components/dashboard/EditStockSheetForm"; // TS refresh
+import { AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { z } from "zod";
 import { StockSheetQuantity } from "@/types";
 
@@ -37,7 +40,7 @@ export default async function EditStockSheetPage({
     .eq("id", id)
     .single();
 
-  if (error || !data || data.status === 'ARCHIVED') {
+  if (error || !data) {
     notFound();
   }
 
@@ -71,12 +74,27 @@ export default async function EditStockSheetPage({
             </p>
           </div>
 
-          <EditStockSheetForm 
-            stockSheetId={id}
-            initialData={data}
-            quantitiesMap={quantitiesMap}
-            currentImageUrl={signedUrl}
-          />
+          {data.status === 'ARCHIVED' ? (
+            <div className="bg-[#111111] border border-gray-800 p-8 rounded-lg text-center max-w-xl">
+              <AlertCircle size={48} className="text-gray-500 mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-white mb-2">Stock Sheet Archived</h2>
+              <p className="text-gray-400 mb-6">
+                This stock sheet is currently archived and cannot be edited. It must be restored to active status before you can make changes.
+              </p>
+              <Link href={`/stock-sheets/${id}`}>
+                <Button className="bg-[#E60000] hover:bg-[#CC0000] text-white tracking-widest uppercase font-bold">
+                  View Stock Sheet
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <EditStockSheetForm 
+              stockSheetId={id}
+              initialData={data}
+              quantitiesMap={quantitiesMap}
+              currentImageUrl={signedUrl}
+            />
+          )}
         </div>
       </main>
     </div>

@@ -9,7 +9,11 @@ import Link from "next/link";
 
 export const instant = false;
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -18,7 +22,7 @@ export default async function Home() {
   }
 
   // Fetch stock sheets with their quantities
-  const { data: sheetsData, error: sheetsError } = await supabase
+  let query = supabase
     .from("stock_sheets")
     .select(`
       *,
@@ -28,6 +32,20 @@ export default async function Home() {
       )
     `)
     .order("created_at", { ascending: false });
+
+  const resolvedParams = await searchParams;
+  const statusParam = resolvedParams.status;
+  
+  // Default to ACTIVE unless explicitly requested otherwise
+  let currentStatusFilter = "active";
+  if (statusParam === "archived") currentStatusFilter = "archived";
+  if (statusParam === "all") currentStatusFilter = "all";
+
+  if (currentStatusFilter !== "all") {
+    query = query.eq("status", currentStatusFilter.toUpperCase());
+  }
+
+  const { data: sheetsData, error: sheetsError } = await query;
 
   if (sheetsError) {
     return (
@@ -107,7 +125,7 @@ export default async function Home() {
             </Link>
           </div>
 
-          <DashboardClient initialSheets={processedSheets} />
+          <DashboardClient initialSheets={processedSheets} currentStatus={currentStatusFilter} />
         </div>
       </main>
     </div>

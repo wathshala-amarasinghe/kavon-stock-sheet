@@ -1,6 +1,6 @@
 // next/image removed — Supabase signed URLs bypass its proxy via plain img
 import Link from "next/link";
-import { Eye, Edit2, ImageIcon, FileText } from "lucide-react";
+import { Eye, Edit2, ImageIcon, FileText, Archive, RefreshCcw } from "lucide-react";
 import { StockSheet } from "@/types";
 import { Button } from "@/components/ui/button";
 
@@ -91,7 +91,7 @@ export function StockSheetCard({ sheet }: StockSheetCardProps) {
           </div>
 
           {/* Actions */}
-          <div className="grid grid-cols-3 gap-2">
+          <div className={`grid ${sheet.status === 'ACTIVE' ? 'grid-cols-4' : 'grid-cols-3'} gap-2`}>
             <Link href={`/stock-sheets/${sheet.id}`} className="flex-1">
               <Button variant="outline" className="w-full bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white px-0" title="View Details">
                 <Eye size={16} />
@@ -102,9 +102,17 @@ export function StockSheetCard({ sheet }: StockSheetCardProps) {
                 <FileText size={16} />
               </Button>
             </Link>
-            <Link href={`/stock-sheets/${sheet.id}/edit`} className="flex-1">
-              <Button variant="outline" className="w-full bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white px-0" title="Edit Sheet">
-                <Edit2 size={16} />
+            {sheet.status === 'ACTIVE' && (
+              <Link href={`/stock-sheets/${sheet.id}/edit`} className="flex-1">
+                <Button variant="outline" className="w-full bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white px-0" title="Edit Sheet">
+                  <Edit2 size={16} />
+                </Button>
+              </Link>
+            )}
+            
+            <Link href={`/stock-sheets/${sheet.id}`} className="flex-1">
+              <Button variant="outline" className={`w-full bg-transparent border-gray-700 px-0 ${sheet.status === 'ACTIVE' ? 'text-gray-300 hover:text-[#E60000] hover:bg-red-950' : 'text-green-500 hover:bg-green-950'}`} title={sheet.status === 'ACTIVE' ? "Archive" : "Restore"}>
+                {sheet.status === 'ACTIVE' ? <Archive size={16} /> : <RefreshCcw size={16} />}
               </Button>
             </Link>
           </div>

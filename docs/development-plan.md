@@ -14,6 +14,15 @@
 - [ ] Implement server-side logic for total calculation.
 - **Acceptance Criteria**: Database schema is applied; storage bucket accepts only valid files from authenticated users.
 
+### Phase 7: Archive and Restore [COMPLETED]
+* **Status**: Completed
+* **Objective**: Reversible soft-delete mechanism.
+* **Key Components**:
+  * Status filtering (Active, Archived, All) on the Dashboard
+  * Database RPC: `set_stock_sheet_archive_state` to safely toggle state
+  * Archive confirmation dialogs and UI feedback
+  * Hard protection against editing archived stock sheets
+
 ## Phase 3: Dashboard & Form UI (Frontend) [COMPLETED]
 **Goal**: Build the user interface for viewing and creating stock sheets.
 - [x] Implement the Home screen listing saved sheets.

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Edit, AlertCircle, Calendar } from "lucide-react";
 import { z } from "zod";
 import { StockSheetQuantity } from "@/types";
+import { ArchiveRestoreActions } from "@/components/dashboard/ArchiveRestoreActions";
 
 export const instant = false;
 
@@ -97,12 +98,22 @@ export default async function StockSheetDetailsPage({
                   Download PDF
                 </Button>
               </a>
-              <Link href={`/stock-sheets/${id}/edit`} className="flex-1 sm:flex-none">
-                <Button className="w-full bg-[#E60000] hover:bg-[#CC0000] text-white tracking-widest uppercase font-bold px-6">
-                  <Edit size={16} className="mr-2" />
-                  Edit
-                </Button>
-              </Link>
+              
+              {data.status === 'ACTIVE' && (
+                <Link href={`/stock-sheets/${id}/edit`} className="flex-1 sm:flex-none">
+                  <Button className="w-full bg-[#E60000] hover:bg-[#CC0000] text-white tracking-widest uppercase font-bold px-6">
+                    <Edit size={16} className="mr-2" />
+                    Edit
+                  </Button>
+                </Link>
+              )}
+
+              <ArchiveRestoreActions 
+                id={id} 
+                status={data.status} 
+                referenceNumber={data.reference_number} 
+                designName={data.design_name} 
+              />
             </div>
           </div>
 
