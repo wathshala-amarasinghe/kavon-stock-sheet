@@ -27,6 +27,9 @@ Authentication relies on the standard `@supabase/ssr` library.
 
 ## Data Flow
 - **Client**: Forms capture user input. React Hook Form manages state, Zod handles client-side validation.
-- **Server Actions / API**: Next.js Server Actions validate the incoming data securely using Zod, recalculate the total quantity, and interact with Supabase using the authenticated server client.
+- **Server Actions**: Next.js Server Actions validate the incoming data securely using Zod, recalculate the total quantity, and interact with Supabase using the authenticated server client.
 - **Storage**: Images are uploaded to a private Supabase Storage bucket. URLs are resolved via authenticated endpoints (signed URLs) so they are not publicly accessible.
 - **Database**: PostgreSQL with Row Level Security ensuring only authenticated administrators can access the `stock_sheets` table.
+
+## PDF Generation
+The system includes a PDF generation pipeline at `app/api/stock-sheets/[id]/pdf/route.ts` which uses `@react-pdf/renderer` in a Node.js runtime and processes private images securely via `sharp` before embedding them.

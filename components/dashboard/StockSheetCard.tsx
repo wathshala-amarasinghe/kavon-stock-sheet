@@ -1,6 +1,6 @@
-import Image from "next/image";
+// next/image removed — Supabase signed URLs bypass its proxy via plain img
 import Link from "next/link";
-import { Eye, Edit2, ImageIcon } from "lucide-react";
+import { Eye, Edit2, ImageIcon, FileText } from "lucide-react";
 import { StockSheet } from "@/types";
 import { Button } from "@/components/ui/button";
 
@@ -16,12 +16,11 @@ export function StockSheetCard({ sheet }: StockSheetCardProps) {
       {/* Top Banner / Image Area */}
       <div className="relative h-48 bg-[#1A1A1A] border-b border-gray-800 flex items-center justify-center overflow-hidden">
         {sheet.signed_image_url ? (
-          <Image
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={sheet.signed_image_url}
             alt={sheet.design_name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
           <div className="flex flex-col items-center justify-center text-gray-600">
@@ -92,15 +91,20 @@ export function StockSheetCard({ sheet }: StockSheetCardProps) {
           </div>
 
           {/* Actions */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <Link href={`/stock-sheets/${sheet.id}`} className="flex-1">
-              <Button variant="outline" className="w-full bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
-                <Eye size={16} className="mr-2" /> View
+              <Button variant="outline" className="w-full bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white px-0" title="View Details">
+                <Eye size={16} />
+              </Button>
+            </Link>
+            <Link href={`/stock-sheets/${sheet.id}/pdf`} className="flex-1">
+              <Button variant="outline" className="w-full bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white px-0" title="PDF Preview">
+                <FileText size={16} />
               </Button>
             </Link>
             <Link href={`/stock-sheets/${sheet.id}/edit`} className="flex-1">
-              <Button variant="outline" className="w-full bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
-                <Edit2 size={16} className="mr-2" /> Edit
+              <Button variant="outline" className="w-full bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white px-0" title="Edit Sheet">
+                <Edit2 size={16} />
               </Button>
             </Link>
           </div>

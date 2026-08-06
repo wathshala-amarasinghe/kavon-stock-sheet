@@ -86,12 +86,24 @@ export default async function StockSheetDetailsPage({
               <p className="text-gray-400 font-mono tracking-widest">{data.reference_number}</p>
             </div>
             
-            <Link href={`/stock-sheets/${id}/edit`}>
-              <Button className="bg-[#E60000] hover:bg-[#CC0000] text-white tracking-widest uppercase font-bold px-6">
-                <Edit size={16} className="mr-2" />
-                Edit Stock Sheet
-              </Button>
-            </Link>
+            <div className="flex flex-wrap gap-3 w-full sm:w-auto">
+              <Link href={`/stock-sheets/${id}/pdf`} className="flex-1 sm:flex-none">
+                <Button variant="outline" className="w-full bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+                  Preview PDF
+                </Button>
+              </Link>
+              <a href={`/api/stock-sheets/${id}/pdf?download=1`} className="flex-1 sm:flex-none">
+                <Button variant="outline" className="w-full bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+                  Download PDF
+                </Button>
+              </a>
+              <Link href={`/stock-sheets/${id}/edit`} className="flex-1 sm:flex-none">
+                <Button className="w-full bg-[#E60000] hover:bg-[#CC0000] text-white tracking-widest uppercase font-bold px-6">
+                  <Edit size={16} className="mr-2" />
+                  Edit
+                </Button>
+              </Link>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
