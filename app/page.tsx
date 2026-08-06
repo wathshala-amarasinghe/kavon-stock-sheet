@@ -1,58 +1,43 @@
-import { DeployButton } from "@/components/deploy-button";
-import { EnvVarWarning } from "@/components/env-var-warning";
-import { AuthButton } from "@/components/auth-button";
-import { Hero } from "@/components/hero";
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import { ConnectSupabaseSteps } from "@/components/tutorial/connect-supabase-steps";
-import { SignUpUserSteps } from "@/components/tutorial/sign-up-user-steps";
-import { hasEnvVars } from "@/lib/utils";
-import Link from "next/link";
-import { Suspense } from "react";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { logoutAction } from "./login/actions";
+import { Button } from "@/components/ui/button";
 
-export default function Home() {
+export const instant = false;
+
+export default async function Home() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
   return (
-    <main className="min-h-screen flex flex-col items-center">
-      <div className="flex-1 w-full flex flex-col gap-20 items-center">
-        <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
-          <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
-            <div className="flex gap-5 items-center font-semibold">
-              <Link href={"/"}>Next.js Supabase Starter</Link>
-              <div className="flex items-center gap-2">
-                <DeployButton />
-              </div>
-            </div>
-            {!hasEnvVars ? (
-              <EnvVarWarning />
-            ) : (
-              <Suspense>
-                <AuthButton />
-              </Suspense>
-            )}
-          </div>
-        </nav>
-        <div className="flex-1 flex flex-col gap-20 max-w-5xl p-5">
-          <Hero />
-          <main className="flex-1 flex flex-col gap-6 px-4">
-            <h2 className="font-medium text-xl mb-4">Next steps</h2>
-            {hasEnvVars ? <SignUpUserSteps /> : <ConnectSupabaseSteps />}
-          </main>
+    <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-2xl bg-[#111111] border border-gray-800 p-12 rounded-xl shadow-2xl text-center">
+        <h1 className="text-4xl font-black uppercase tracking-widest text-[#E60000] mb-4">
+          KAVON Stock Sheet
+        </h1>
+        <div className="bg-[#1A1A1A] p-6 rounded-lg mb-8 border border-gray-800">
+          <p className="text-gray-400 mb-2 uppercase tracking-widest text-sm">Signed in as</p>
+          <p className="text-xl font-medium">{user.email}</p>
+        </div>
+        
+        <div className="inline-block px-4 py-2 bg-green-900/30 text-green-400 border border-green-800 rounded-full mb-8 font-medium">
+          ✓ Authentication successful
         </div>
 
-        <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
-          <p>
-            Powered by{" "}
-            <a
-              href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
-              target="_blank"
-              className="font-bold hover:underline"
-              rel="noreferrer"
-            >
-              Supabase
-            </a>
-          </p>
-          <ThemeSwitcher />
-        </footer>
+        <form action={logoutAction}>
+          <Button 
+            type="submit" 
+            variant="outline" 
+            className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white uppercase tracking-wider h-12 px-8 bg-transparent"
+          >
+            Log Out
+          </Button>
+        </form>
       </div>
-    </main>
+    </div>
   );
 }
