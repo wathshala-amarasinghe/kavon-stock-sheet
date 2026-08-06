@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Eye, Edit2, ImageIcon } from "lucide-react";
 import { StockSheet } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -92,12 +93,16 @@ export function StockSheetCard({ sheet }: StockSheetCardProps) {
 
           {/* Actions */}
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" className="w-full bg-transparent border-gray-700 hover:bg-gray-800 text-white" disabled>
-              <Eye size={16} className="mr-2" /> View
-            </Button>
-            <Button variant="outline" className="w-full bg-transparent border-gray-700 hover:bg-gray-800 text-white" disabled>
-              <Edit2 size={16} className="mr-2" /> Edit
-            </Button>
+            <Link href={`/stock-sheets/${sheet.id}`} className="flex-1">
+              <Button variant="outline" className="w-full bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+                <Eye size={16} className="mr-2" /> View
+              </Button>
+            </Link>
+            <Link href={`/stock-sheets/${sheet.id}/edit`} className="flex-1">
+              <Button variant="outline" className="w-full bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+                <Edit2 size={16} className="mr-2" /> Edit
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

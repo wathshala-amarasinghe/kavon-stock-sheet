@@ -15,7 +15,9 @@ The KAVON Stock Sheet application is built on Next.js 16 using the App Router, w
 ## Data Models
 - `stock_sheets`: The primary table storing details about an order (Reference number, design name, garment colour, image path, status).
 - `stock_sheet_quantities`: Stores size quantities for each stock sheet (S, M, L, XL, XXL).
-- **PostgreSQL Functions**: We use a transactional `create_stock_sheet_transaction` function in `202608060002_create_stock_sheet_function.sql` to ensure atomicity when inserting a stock sheet and its five quantities simultaneously.
+- **PostgreSQL Functions**: 
+  - `create_stock_sheet_transaction`: Atomically inserts a stock sheet and five quantities.
+  - `update_stock_sheet_transaction`: Atomically updates a stock sheet (including replacement image validation) and its five quantities, while verifying ownership and ensuring it's not archived.
 
 ## Authentication
 Authentication relies on the standard `@supabase/ssr` library.

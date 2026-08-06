@@ -29,12 +29,13 @@
 - [x] Revalidate paths to update the dashboard.
 - **Acceptance Criteria**: Form correctly saves data and image; errors are gracefully handled without leaving orphan files.
 
-## Phase 5: PDF Generation
-**Goal**: Allow preview and download of branded PDFs.
-- Create PDF template using `@react-pdf/renderer`.
-- Integrate KAVON branding (colors, logo, footer).
-- Implement PDF preview and download functionality.
-- **Acceptance Criteria**: Generated PDF accurately reflects stock sheet data and matches branding requirements.
+## Phase 5: Details and Edit Stock Sheet [COMPLETED]
+**Goal**: View stock sheet details and allow transactional updates with image replacement.
+- [x] Create Details page (`/stock-sheets/[id]`) with image preview.
+- [x] Create Edit page (`/stock-sheets/[id]/edit`) using pre-populated form.
+- [x] Create Postgres function `update_stock_sheet_transaction` to atomically update the sheet and quantities.
+- [x] Implement secure image replacement logic (delete old image only after successful DB update).
+- **Acceptance Criteria**: Admin can successfully view and edit a stock sheet, and the image can be replaced cleanly without leaving orphans.
 
 ## Phase 6: Testing & Optimization
 **Goal**: Ensure reliability and quality.
