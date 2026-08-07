@@ -13,7 +13,7 @@ The KAVON Stock Sheet application is built on Next.js 16 using the App Router, w
 - **Storage**: Supabase Storage (Private Buckets)
 
 ## Data Models
-- `stock_sheets`: The primary table storing details about an order (Reference number, design name, garment colour, image path, status).
+- `stock_sheets`: The primary table storing details about an order (Reference number, design name, garment colour, image paths, status).
 - `stock_sheet_quantities`: Stores size quantities for each stock sheet (S, M, L, XL, XXL).
 - **PostgreSQL Functions**: 
   - `create_stock_sheet_transaction`: Atomically inserts a stock sheet and five quantities.
