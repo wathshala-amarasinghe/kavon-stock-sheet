@@ -7,6 +7,7 @@ import { Menu, X, Home, PlusCircle, LogOut, Activity } from "lucide-react";
 import { logoutAction } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface SidebarProps {
   userEmail: string;
@@ -28,9 +29,15 @@ export function Sidebar({ userEmail }: SidebarProps) {
     <>
       {/* Mobile Header */}
       <div className="lg:hidden flex items-center justify-between p-4 bg-[#0A0A0A] border-b border-gray-800">
-        <div className="text-xl font-black uppercase tracking-widest text-[#E60000]">
-          KAVON
-        </div>
+        <Link href="/" className="flex items-center">
+          <Image 
+            src="/brand/logo.png" 
+            alt="KAVON Logo" 
+            width={100} 
+            height={28} 
+            className="object-contain"
+          />
+        </Link>
         <button onClick={() => setIsOpen(!isOpen)} className="text-white p-2">
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -50,9 +57,15 @@ export function Sidebar({ userEmail }: SidebarProps) {
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="p-6">
-          <h1 className="text-2xl font-black uppercase tracking-widest text-[#E60000] mb-1">
-            KAVON
-          </h1>
+          <Link href="/" className="block mb-2">
+            <Image 
+              src="/brand/logo.png" 
+              alt="KAVON Logo" 
+              width={140} 
+              height={40} 
+              className="object-contain"
+            />
+          </Link>
           <p className="text-xs text-gray-500 uppercase tracking-widest">
             Admin Panel
           </p>

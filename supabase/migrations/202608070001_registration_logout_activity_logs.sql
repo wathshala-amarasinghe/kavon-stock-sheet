@@ -1,5 +1,5 @@
 -- Profiles Table
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     full_name TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -8,17 +8,20 @@ CREATE TABLE profiles (
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can read their own profile" ON profiles;
 CREATE POLICY "Users can read their own profile"
 ON profiles FOR SELECT
 TO authenticated
 USING (id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
 CREATE POLICY "Users can update their own profile"
 ON profiles FOR UPDATE
 TO authenticated
 USING (id = auth.uid())
 WITH CHECK (id = auth.uid());
 
+DROP TRIGGER IF EXISTS profiles_updated_at ON profiles;
 CREATE TRIGGER profiles_updated_at
 BEFORE UPDATE ON profiles
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -27,19 +30,22 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE OR REPLACE FUNCTION on_auth_user_created()
 RETURNS TRIGGER AS $$
 BEGIN
+  -- Handle conflict if the row already exists
   INSERT INTO public.profiles (id, full_name)
-  VALUES (new.id, COALESCE(new.raw_user_meta_data->>'full_name', 'New User'));
+  VALUES (new.id, COALESCE(new.raw_user_meta_data->>'full_name', 'New User'))
+  ON CONFLICT (id) DO NOTHING;
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
 AFTER INSERT ON auth.users
 FOR EACH ROW EXECUTE FUNCTION on_auth_user_created();
 
 
 -- Activity Logs Table
-CREATE TABLE activity_logs (
+CREATE TABLE IF NOT EXISTS activity_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     action_type TEXT NOT NULL CHECK (action_type IN (
@@ -55,11 +61,13 @@ CREATE TABLE activity_logs (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_activity_logs_user_id_created_at ON activity_logs(user_id, created_at DESC);
-CREATE INDEX idx_activity_logs_action_type ON activity_logs(action_type);
+-- Drop indexes if they exist to prevent errors, or use IF NOT EXISTS
+CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id_created_at ON activity_logs(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_action_type ON activity_logs(action_type);
 
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can read their own activity logs" ON activity_logs;
 CREATE POLICY "Users can read their own activity logs"
 ON activity_logs FOR SELECT
 TO authenticated

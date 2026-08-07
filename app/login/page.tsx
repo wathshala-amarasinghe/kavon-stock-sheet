@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import Image from "next/image";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -52,9 +53,16 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-[#111111] border border-gray-800 p-8 rounded-xl shadow-2xl">
         <div className="flex flex-col items-center mb-8">
-          <h1 className="text-3xl font-black uppercase tracking-widest text-[#E60000] mb-2">
-            KAVON
-          </h1>
+          <div className="mb-4">
+            <Image 
+              src="/brand/logo.png" 
+              alt="KAVON Logo" 
+              width={160} 
+              height={45} 
+              priority
+              className="object-contain"
+            />
+          </div>
           <p className="text-gray-400 text-sm tracking-widest uppercase">
             Wear Power. Wear KAVON.
           </p>
