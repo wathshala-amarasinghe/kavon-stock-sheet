@@ -15,10 +15,10 @@ export function StockSheetCard({ sheet }: StockSheetCardProps) {
     <div className="bg-[#111111] border border-gray-800 rounded-lg overflow-hidden flex flex-col hover:border-gray-700 transition-colors">
       {/* Top Banner / Image Area */}
       <div className="relative h-48 bg-[#1A1A1A] border-b border-gray-800 flex items-center justify-center overflow-hidden">
-        {sheet.signed_image_url ? (
+        {sheet.signed_image_urls && sheet.signed_image_urls.length > 0 ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={sheet.signed_image_url}
+            src={sheet.signed_image_urls[0]}
             alt={sheet.design_name}
             className="absolute inset-0 w-full h-full object-cover"
           />

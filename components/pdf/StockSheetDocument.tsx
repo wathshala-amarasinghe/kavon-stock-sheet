@@ -176,12 +176,12 @@ const styles = StyleSheet.create({
 
 interface StockSheetDocumentProps {
   sheet: StockSheet;
-  imageBuffer: string | null; // base64 representation of the processed image
+  imageBuffers: string[]; // base64 representation of the processed images
   logoUrl: string; // URL to the public KAVON logo
   total: number;
 }
 
-export function StockSheetDocument({ sheet, imageBuffer, logoUrl, total }: StockSheetDocumentProps) {
+export function StockSheetDocument({ sheet, imageBuffers, logoUrl, total }: StockSheetDocumentProps) {
   const SIZES = ["S", "M", "L", "XL", "XXL"];
 
   // Format dates explicitly in Asia/Colombo to match requirements
@@ -250,8 +250,8 @@ export function StockSheetDocument({ sheet, imageBuffer, logoUrl, total }: Stock
 
         {/* Image Section */}
         <View style={styles.imageSection}>
-          {imageBuffer ? (
-            <Image src={imageBuffer} style={styles.designImage} />
+          {imageBuffers.length > 0 ? (
+            <Image src={imageBuffers[0]} style={styles.designImage} />
           ) : (
             <Text style={styles.noImageText}>Design image unavailable</Text>
           )}
@@ -276,6 +276,13 @@ export function StockSheetDocument({ sheet, imageBuffer, logoUrl, total }: Stock
             <Text style={[styles.tableCellTotal, { borderRightWidth: 0 }]}>{total}</Text>
           </View>
         </View>
+
+        {/* Additional Images */}
+        {imageBuffers.length > 1 && imageBuffers.slice(1).map((img, idx) => (
+          <View key={idx} style={[styles.imageSection, { marginTop: 30 }]} break>
+            <Image src={img} style={styles.designImage} />
+          </View>
+        ))}
 
         {/* Footer */}
         <View style={styles.footer} fixed>

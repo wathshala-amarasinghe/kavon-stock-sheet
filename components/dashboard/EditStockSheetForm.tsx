@@ -4,9 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { UploadCloud, X, Loader2, Image as ImageIcon } from "lucide-react";
+import { UploadCloud, X, Loader2 } from "lucide-react";
 import { stockSheetSchema, StockSheetFormValues } from "@/lib/validations/stock-sheet";
-import { prepareUpdateUploadAction, updateStockSheetAction } from "@/app/stock-sheets/[id]/edit/actions";
+import { prepareUpdateUploadsAction, updateStockSheetAction } from "@/app/stock-sheets/[id]/edit/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,13 +16,13 @@ interface EditStockSheetFormProps {
   stockSheetId: string;
   initialData: StockSheet;
   quantitiesMap: Record<string, number>;
-  currentImageUrl: string | null;
+  existingImages: { path: string; url: string }[];
 }
 
-export function EditStockSheetForm({ stockSheetId, initialData, quantitiesMap, currentImageUrl }: EditStockSheetFormProps) {
+export function EditStockSheetForm({ stockSheetId, initialData, quantitiesMap, existingImages }: EditStockSheetFormProps) {
   const router = useRouter();
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [existingImgs, setExistingImgs] = useState(existingImages);
+  const [newFiles, setNewFiles] = useState<{ file: File; previewUrl: string }[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,78 +54,94 @@ export function EditStockSheetForm({ stockSheetId, initialData, quantitiesMap, c
 
   useEffect(() => {
     return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
+      newFiles.forEach(f => URL.revokeObjectURL(f.previewUrl));
     };
-  }, [previewUrl]);
+  }, [newFiles]);
 
-  const validateFile = (selectedFile: File) => {
+  const processFiles = (files: File[]) => {
     setFileError(null);
     const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    if (!validTypes.includes(selectedFile.type)) {
-      setFileError("Invalid file type. Only JPG, PNG, and WebP are allowed.");
-      return false;
+    
+    if (existingImgs.length + newFiles.length + files.length > 5) {
+      setFileError("You can have a maximum of 5 images total.");
+      return;
     }
-    if (selectedFile.size > 10 * 1024 * 1024) {
-      setFileError("File exceeds 10MB limit.");
-      return false;
+
+    const validFiles = files.filter(f => validTypes.includes(f.type) && f.size <= 10 * 1024 * 1024);
+    if (validFiles.length < files.length) {
+      setFileError("Some files were rejected. Only JPG, PNG, and WebP up to 10MB are allowed.");
     }
-    return true;
+
+    const newEntries = validFiles.map(f => ({
+      file: f,
+      previewUrl: URL.createObjectURL(f)
+    }));
+
+    setNewFiles(prev => [...prev, ...newEntries]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0];
-    if (selected && validateFile(selected)) {
-      setFile(selected);
-      setPreviewUrl(URL.createObjectURL(selected));
-    }
+    const selected = Array.from(e.target.files || []);
+    processFiles(selected);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const dropped = e.dataTransfer.files?.[0];
-    if (dropped && validateFile(dropped)) {
-      setFile(dropped);
-      setPreviewUrl(URL.createObjectURL(dropped));
-    }
+    const dropped = Array.from(e.dataTransfer.files || []);
+    processFiles(dropped);
   };
 
-  const clearFile = () => {
-    setFile(null);
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  const removeExistingImg = (index: number) => {
+    setExistingImgs(prev => {
+      const updated = [...prev];
+      updated.splice(index, 1);
+      return updated;
+    });
+  };
+
+  const removeNewFile = (index: number) => {
+    setNewFiles(prev => {
+      const updated = [...prev];
+      URL.revokeObjectURL(updated[index].previewUrl);
+      updated.splice(index, 1);
+      return updated;
+    });
   };
 
   const onSubmit = async (data: StockSheetFormValues) => {
+    if (existingImgs.length === 0 && newFiles.length === 0) {
+      setFileError("At least one design image is required");
+      return;
+    }
+
     setGlobalError(null);
     setIsSubmitting(true);
 
     try {
-      let newImagePath = null;
+      const newlyUploadedPaths: string[] = [];
 
-      // 1. If replacement file selected, upload it
-      if (file) {
-        const ext = file.name.split('.').pop() || "jpg";
-        const prepRes = await prepareUpdateUploadAction(stockSheetId, ext);
+      // 1. If there are new files, upload them
+      if (newFiles.length > 0) {
+        const exts = newFiles.map(f => f.file.name.split('.').pop() || "jpg");
+        const prepRes = await prepareUpdateUploadsAction(stockSheetId, exts);
         
-        if (prepRes.error || !prepRes.signedUrl || !prepRes.path) {
-          throw new Error(prepRes.error || "Failed to prepare upload");
+        if (prepRes.error || !prepRes.uploads) {
+          throw new Error(prepRes.error || "Failed to prepare uploads");
         }
 
-        const uploadRes = await fetch(prepRes.signedUrl, {
-          method: "PUT",
-          body: file,
-          headers: {
-            "Content-Type": file.type,
-          },
+        const uploadPromises = newFiles.map((f, i) => {
+          // Add to newly uploaded paths for DB
+          newlyUploadedPaths.push(prepRes.uploads![i].path);
+          return fetch(prepRes.uploads![i].signedUrl, {
+            method: "PUT",
+            body: f.file,
+            headers: { "Content-Type": f.file.type },
+          }).then(res => {
+            if (!res.ok) throw new Error(`Failed to upload ${f.file.name}`);
+          });
         });
-
-        if (!uploadRes.ok) {
-          throw new Error("Failed to upload image securely");
-        }
-        newImagePath = prepRes.path;
+        await Promise.all(uploadPromises);
       }
 
       // 2. Finalize DB transaction
@@ -139,7 +155,12 @@ export function EditStockSheetForm({ stockSheetId, initialData, quantitiesMap, c
       submitFormData.append("q_xl", data.q_xl.toString());
       submitFormData.append("q_xxl", data.q_xxl.toString());
 
-      const finalRes = await updateStockSheetAction(stockSheetId, newImagePath, submitFormData);
+      const finalImagePaths = [
+        ...existingImgs.map(img => img.path),
+        ...newlyUploadedPaths
+      ];
+
+      const finalRes = await updateStockSheetAction(stockSheetId, finalImagePaths, newlyUploadedPaths, submitFormData);
 
       if (finalRes.error) {
         throw new Error(finalRes.error);
@@ -252,69 +273,68 @@ export function EditStockSheetForm({ stockSheetId, initialData, quantitiesMap, c
         </div>
 
         <div className="space-y-4">
-          <Label className="text-gray-300 block">Replacement Design Image (Optional)</Label>
-          <div 
-            className={`border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-6 text-center transition-colors relative
-              ${fileError ? 'border-[#E60000] bg-[#E60000]/5' : 'border-gray-700 hover:border-gray-500 bg-[#111111]'}
-              ${(previewUrl || currentImageUrl) ? 'min-h-[300px]' : 'h-64'}`}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDrop}
-          >
-            {previewUrl ? (
-              <div className="relative w-full">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={previewUrl} alt="New Preview" className="w-full h-auto max-h-[400px] object-contain rounded-md mb-4 border border-[#E60000]" />
-                <div className="flex justify-between items-center bg-black/80 p-2 rounded absolute bottom-2 left-2 right-2">
-                  <div className="text-left text-xs overflow-hidden">
-                    <p className="text-white truncate font-medium">{file?.name}</p>
-                    <p className="text-[#E60000] font-bold">New Image</p>
+          <Label className="text-gray-300 block">Design Images (Max 5)</Label>
+          
+          {(existingImgs.length > 0 || newFiles.length > 0) && (
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {/* Existing Images */}
+              {existingImgs.map((img, i) => (
+                <div key={`existing-${i}`} className="relative group border border-gray-800 rounded bg-[#111111] overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.url} alt={`Existing ${i}`} className="w-full h-32 object-cover opacity-80" />
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Button type="button" size="sm" variant="destructive" onClick={() => removeExistingImg(i)} disabled={isSubmitting}>
+                      <X size={16} /> Remove
+                    </Button>
                   </div>
-                  <Button type="button" size="sm" variant="destructive" onClick={clearFile} disabled={isSubmitting}>
-                    <X size={16} />
-                  </Button>
                 </div>
-              </div>
-            ) : currentImageUrl ? (
-              <div className="relative w-full flex flex-col items-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={currentImageUrl} alt="Current Design" className="w-full h-auto max-h-[400px] object-contain rounded-md mb-4 opacity-50" />
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <Button 
-                    type="button" 
-                    variant="secondary" 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="pointer-events-auto bg-white text-black hover:bg-gray-200"
-                    disabled={isSubmitting}
-                  >
-                    <ImageIcon size={16} className="mr-2" />
-                    Replace Image
-                  </Button>
+              ))}
+              
+              {/* New Files */}
+              {newFiles.map((f, i) => (
+                <div key={`new-${i}`} className="relative group border border-[#E60000] rounded bg-[#111111] overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={f.previewUrl} alt={`New Preview ${i}`} className="w-full h-32 object-cover" />
+                  <div className="absolute top-1 left-1 bg-[#E60000] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">NEW</div>
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Button type="button" size="sm" variant="destructive" onClick={() => removeNewFile(i)} disabled={isSubmitting}>
+                      <X size={16} /> Remove
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <>
-                <UploadCloud size={48} className="text-gray-500 mb-4" />
-                <p className="text-gray-300 font-medium mb-1">Drag and drop replacement here</p>
-                <p className="text-gray-500 text-sm mb-4">Supports JPG, PNG, WebP up to 10MB</p>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-transparent border-gray-600 hover:bg-gray-800 text-white"
-                  disabled={isSubmitting}
-                >
-                  Select File
-                </Button>
-              </>
-            )}
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept="image/jpeg, image/png, image/webp" 
-              onChange={handleFileChange}
-            />
-          </div>
+              ))}
+            </div>
+          )}
+
+          {existingImgs.length + newFiles.length < 5 && (
+            <div 
+              className={`border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-6 text-center transition-colors relative
+                ${fileError ? 'border-[#E60000] bg-[#E60000]/5' : 'border-gray-700 hover:border-gray-500 bg-[#111111]'}
+                h-32`}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+            >
+              <UploadCloud size={32} className="text-gray-500 mb-2" />
+              <p className="text-gray-300 font-medium mb-1 text-sm">Add more images</p>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-transparent border-gray-600 hover:bg-gray-800 text-white mt-2 h-8 text-xs"
+                disabled={isSubmitting}
+              >
+                Select Files
+              </Button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                multiple
+                accept="image/jpeg, image/png, image/webp" 
+                onChange={handleFileChange}
+              />
+            </div>
+          )}
           {fileError && <p className="text-[#E60000] text-sm mt-2">{fileError}</p>}
         </div>
       </div>

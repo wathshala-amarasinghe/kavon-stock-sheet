@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { stockSheetSchema } from "@/lib/validations/stock-sheet";
 
-export async function prepareUploadAction(formData: FormData, fileExtension: string) {
+export async function prepareUploadsAction(fileExtensions: string[]) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -13,27 +13,35 @@ export async function prepareUploadAction(formData: FormData, fileExtension: str
 
   // Generate UUIDs
   const stockSheetId = crypto.randomUUID();
-  const imageUuid = crypto.randomUUID();
-  const imagePath = `${user.id}/${stockSheetId}/${imageUuid}.${fileExtension}`;
+  const uploads = [];
 
-  // Create signed upload URL
-  const { data, error } = await supabase.storage
-    .from("kavon-designs")
-    .createSignedUploadUrl(imagePath);
+  for (const ext of fileExtensions) {
+    const imageUuid = crypto.randomUUID();
+    const imagePath = `${user.id}/${stockSheetId}/${imageUuid}.${ext}`;
 
-  if (error || !data) {
-    return { error: "Failed to create upload URL: " + (error?.message || "Unknown error") };
+    // Create signed upload URL
+    const { data, error } = await supabase.storage
+      .from("kavon-designs")
+      .createSignedUploadUrl(imagePath);
+
+    if (error || !data) {
+      return { error: "Failed to create upload URL: " + (error?.message || "Unknown error") };
+    }
+
+    uploads.push({
+      signedUrl: data.signedUrl,
+      token: data.token,
+      path: imagePath,
+    });
   }
 
   return {
-    signedUrl: data.signedUrl,
-    token: data.token,
-    path: imagePath,
+    uploads,
     stockSheetId,
   };
 }
 
-export async function finalizeStockSheetAction(stockSheetId: string, imagePath: string, formData: FormData) {
+export async function finalizeStockSheetAction(stockSheetId: string, imagePaths: string[], formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -55,8 +63,10 @@ export async function finalizeStockSheetAction(stockSheetId: string, imagePath: 
   const parsed = stockSheetSchema.safeParse(rawData);
 
   if (!parsed.success) {
-    // If validation fails, cleanup image
-    await supabase.storage.from("kavon-designs").remove([imagePath]);
+    // If validation fails, cleanup images
+    if (imagePaths.length > 0) {
+      await supabase.storage.from("kavon-designs").remove(imagePaths);
+    }
     return { error: "Invalid form data" };
   }
 
@@ -69,7 +79,7 @@ export async function finalizeStockSheetAction(stockSheetId: string, imagePath: 
     d_name: data.design_name,
     garment_c_name: data.garment_colour_name,
     garment_c_hex: hexValue,
-    img_path: imagePath,
+    img_paths: imagePaths,
     q_s: data.q_s,
     q_m: data.q_m,
     q_l: data.q_l,
@@ -78,8 +88,10 @@ export async function finalizeStockSheetAction(stockSheetId: string, imagePath: 
   });
 
   if (rpcError) {
-    // If DB save fails, clean up the uploaded image
-    await supabase.storage.from("kavon-designs").remove([imagePath]);
+    // If DB save fails, clean up the uploaded images
+    if (imagePaths.length > 0) {
+      await supabase.storage.from("kavon-designs").remove(imagePaths);
+    }
     return { error: "Failed to save stock sheet: " + rpcError.message };
   }
 

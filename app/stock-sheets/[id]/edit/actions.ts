@@ -5,7 +5,7 @@ import { stockSheetSchema } from "@/lib/validations/stock-sheet";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
-export async function prepareUpdateUploadAction(stockSheetId: string, fileExtension: string) {
+export async function prepareUpdateUploadsAction(stockSheetId: string, fileExtensions: string[]) {
   const uuidResult = z.string().uuid().safeParse(stockSheetId);
   if (!uuidResult.success) return { error: "Invalid ID" };
 
@@ -30,25 +30,36 @@ export async function prepareUpdateUploadAction(stockSheetId: string, fileExtens
     return { error: "Archived sheets cannot be edited" };
   }
 
-  const imageUuid = crypto.randomUUID();
-  const imagePath = `${user.id}/${stockSheetId}/${imageUuid}.${fileExtension}`;
+  const uploads = [];
+  
+  for (const ext of fileExtensions) {
+    const imageUuid = crypto.randomUUID();
+    const imagePath = `${user.id}/${stockSheetId}/${imageUuid}.${ext}`;
 
-  const { data, error } = await supabase.storage
-    .from("kavon-designs")
-    .createSignedUploadUrl(imagePath);
+    const { data, error } = await supabase.storage
+      .from("kavon-designs")
+      .createSignedUploadUrl(imagePath);
 
-  if (error || !data) {
-    return { error: "Failed to create upload URL" };
+    if (error || !data) {
+      return { error: "Failed to create upload URL" };
+    }
+
+    uploads.push({
+      signedUrl: data.signedUrl,
+      token: data.token,
+      path: imagePath,
+    });
   }
 
-  return {
-    signedUrl: data.signedUrl,
-    token: data.token,
-    path: imagePath,
-  };
+  return { uploads };
 }
 
-export async function updateStockSheetAction(stockSheetId: string, newImagePath: string | null, formData: FormData) {
+export async function updateStockSheetAction(
+  stockSheetId: string, 
+  finalImagePaths: string[], 
+  newlyUploadedPaths: string[], 
+  formData: FormData
+) {
   const uuidResult = z.string().uuid().safeParse(stockSheetId);
   if (!uuidResult.success) return { error: "Invalid ID" };
 
@@ -73,8 +84,8 @@ export async function updateStockSheetAction(stockSheetId: string, newImagePath:
   const parsed = stockSheetSchema.safeParse(rawData);
 
   if (!parsed.success) {
-    if (newImagePath) {
-      await supabase.storage.from("kavon-designs").remove([newImagePath]);
+    if (newlyUploadedPaths.length > 0) {
+      await supabase.storage.from("kavon-designs").remove(newlyUploadedPaths);
     }
     return { error: "Invalid form data" };
   }
@@ -82,16 +93,15 @@ export async function updateStockSheetAction(stockSheetId: string, newImagePath:
   const data = parsed.data;
   const hexValue = data.garment_colour_hex ? data.garment_colour_hex.toUpperCase() : null;
 
-  // Retrieve the old image path BEFORE updating, so we can delete it later
-  let oldImagePath = null;
-  if (newImagePath) {
-    const { data: existing } = await supabase
-      .from("stock_sheets")
-      .select("design_image_path")
-      .eq("id", stockSheetId)
-      .single();
-    if (existing) oldImagePath = existing.design_image_path;
-  }
+  // Retrieve the old image paths BEFORE updating, so we can delete removed ones later
+  const { data: existing } = await supabase
+    .from("stock_sheets")
+    .select("design_image_paths")
+    .eq("id", stockSheetId)
+    .single();
+    
+  const oldPaths = existing?.design_image_paths || [];
+  const pathsToDelete = oldPaths.filter((p: string) => !finalImagePaths.includes(p));
 
   // Perform transaction
   const { data: rpcData, error: rpcError } = await supabase.rpc("update_stock_sheet_transaction", {
@@ -99,7 +109,7 @@ export async function updateStockSheetAction(stockSheetId: string, newImagePath:
     p_d_name: data.design_name,
     p_garment_c_name: data.garment_colour_name,
     p_garment_c_hex: hexValue,
-    p_img_path: newImagePath, // Null means don't update
+    p_img_paths: finalImagePaths,
     p_q_s: data.q_s,
     p_q_m: data.q_m,
     p_q_l: data.q_l,
@@ -108,19 +118,18 @@ export async function updateStockSheetAction(stockSheetId: string, newImagePath:
   });
 
   if (rpcError) {
-    if (newImagePath) {
-      // Transaction failed, cleanup newly uploaded image
-      await supabase.storage.from("kavon-designs").remove([newImagePath]);
+    if (newlyUploadedPaths.length > 0) {
+      // Transaction failed, cleanup newly uploaded images
+      await supabase.storage.from("kavon-designs").remove(newlyUploadedPaths);
     }
     return { error: "Failed to update stock sheet: " + rpcError.message };
   }
 
-  // Update succeeded. If there is a new image, delete the old one.
-  if (newImagePath && oldImagePath) {
-    const { error: delError } = await supabase.storage.from("kavon-designs").remove([oldImagePath]);
+  // Update succeeded. Delete the removed old images.
+  if (pathsToDelete.length > 0) {
+    const { error: delError } = await supabase.storage.from("kavon-designs").remove(pathsToDelete);
     if (delError) {
-      console.warn("Cleanup warning: Failed to delete old image", oldImagePath);
-      // We do not fail the request here, because the DB is already updated successfully.
+      console.warn("Cleanup warning: Failed to delete old images", pathsToDelete);
     }
   }
 

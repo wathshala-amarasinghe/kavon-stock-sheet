@@ -50,13 +50,22 @@ export default async function EditStockSheetPage({
     return acc;
   }, {} as Record<string, number>);
 
-  // Fetch signed URL for the current image
-  let signedUrl = null;
-  if (data.design_image_path) {
-    const { data: urlData } = await supabase.storage
+  // Fetch signed URLs for existing images
+  const existingImages: { path: string; url: string }[] = [];
+  if (data.design_image_paths && data.design_image_paths.length > 0) {
+    const { data: urlsData } = await supabase.storage
       .from("kavon-designs")
-      .createSignedUrl(data.design_image_path, 3600);
-    signedUrl = urlData?.signedUrl || null;
+      .createSignedUrls(data.design_image_paths, 3600);
+      
+    if (urlsData) {
+      for (const item of urlsData) {
+        if (!item.error && item.signedUrl && item.path) {
+          // Supabase createSignedUrls returns path without the bucket, but wait - the path returned in urlsData is the requested path.
+          // Let's just map it directly.
+          existingImages.push({ path: item.path, url: item.signedUrl });
+        }
+      }
+    }
   }
 
   return (
@@ -92,7 +101,7 @@ export default async function EditStockSheetPage({
               stockSheetId={id}
               initialData={data}
               quantitiesMap={quantitiesMap}
-              currentImageUrl={signedUrl}
+              existingImages={existingImages}
             />
           )}
         </div>

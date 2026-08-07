@@ -82,20 +82,22 @@ export default async function Home({
         return acc;
       }, {} as Record<string, number>);
 
-      let signedUrl = null;
-      if (sheet.design_image_path) {
+      let signedUrls: string[] = [];
+      if (sheet.design_image_paths && sheet.design_image_paths.length > 0) {
         const { data: urlData } = await supabase.storage
           .from("kavon-designs")
-          .createSignedUrl(sheet.design_image_path, 3600); // 1 hour expiry
+          .createSignedUrl(sheet.design_image_paths[0], 3600); // 1 hour expiry
         
-        signedUrl = urlData?.signedUrl || null;
+        if (urlData?.signedUrl) {
+          signedUrls = [urlData.signedUrl];
+        }
       }
 
       return {
         ...sheet,
         total_quantity: totalQuantity,
         quantities_map: quantitiesMap,
-        signed_image_url: signedUrl,
+        signed_image_urls: signedUrls,
       };
     })
   );

@@ -27,9 +27,23 @@ export async function registerAction(formData: FormData) {
   });
 
   if (error) {
-    // Return a generic error to prevent enumeration or specific details exposure
-    console.error("Signup error:", error);
-    return { error: "Registration failed. Please try again or try logging in." };
+    // Log full details server-side for diagnosis
+    console.error("Signup error code:", error.code);
+    console.error("Signup error message:", error.message);
+    console.error("Signup error status:", error.status);
+
+    // If signups are disabled in Supabase dashboard
+    if (error.status === 422 || error.message?.toLowerCase().includes('signup')) {
+      return { error: "New registrations are currently disabled. Please contact the administrator." };
+    }
+
+    return { error: "Registration failed. Please try again." };
+  }
+
+  // Handle both email-confirmation-enabled and disabled cases
+  if (data.user && !data.session) {
+    // Email confirmation is enabled
+    return { success: "Please check your email to confirm your account." };
   }
 
   // Safe logging on successful registration

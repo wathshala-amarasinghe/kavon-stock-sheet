@@ -67,29 +67,31 @@ export async function GET(
     };
 
     // Download image bytes securely on the server
-    let imageBufferBase64: string | null = null;
-    if (sheet.design_image_path) {
-      try {
-        const { data: fileData, error: fileError } = await supabase.storage
-          .from("kavon-designs")
-          .download(sheet.design_image_path);
+    const imageBuffersBase64: string[] = [];
+    if (sheet.design_image_paths && sheet.design_image_paths.length > 0) {
+      for (const path of sheet.design_image_paths) {
+        try {
+          const { data: fileData, error: fileError } = await supabase.storage
+            .from("kavon-designs")
+            .download(path);
 
-        if (!fileError && fileData) {
-          const arrayBuffer = await fileData.arrayBuffer();
-          let buffer = Buffer.from(arrayBuffer);
+          if (!fileError && fileData) {
+            const arrayBuffer = await fileData.arrayBuffer();
+            let buffer = Buffer.from(arrayBuffer);
 
-          // Use sharp to normalize to PNG (handles webp automatically)
-          buffer = await sharp(buffer)
-            .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
-            .png()
-            .toBuffer();
+            // Use sharp to normalize to PNG (handles webp automatically)
+            buffer = await sharp(buffer)
+              .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+              .png()
+              .toBuffer();
 
-          imageBufferBase64 = `data:image/png;base64,${buffer.toString("base64")}`;
-        } else {
-          console.warn("Failed to download image from storage", fileError);
+            imageBuffersBase64.push(`data:image/png;base64,${buffer.toString("base64")}`);
+          } else {
+            console.warn("Failed to download image from storage", fileError);
+          }
+        } catch (err) {
+          console.warn("Error processing image buffer", err);
         }
-      } catch (err) {
-        console.warn("Error processing image buffer", err);
       }
     }
 
@@ -100,7 +102,7 @@ export async function GET(
     // Render PDF
     const pdfBuffer = await renderToBuffer(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      React.createElement(StockSheetDocument, { sheet, imageBuffer: imageBufferBase64, logoUrl, total }) as any
+      React.createElement(StockSheetDocument, { sheet, imageBuffers: imageBuffersBase64, logoUrl, total }) as any
     );
 
     const isDownload = request.nextUrl.searchParams.get("download") === "1";

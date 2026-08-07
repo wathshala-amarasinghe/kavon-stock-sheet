@@ -52,13 +52,18 @@ export default async function StockSheetDetailsPage({
 
   const total = quantities.reduce((acc, q) => acc + q.quantity, 0);
 
-  // Fetch signed URL
-  let signedUrl = null;
-  if (data.design_image_path) {
-    const { data: urlData } = await supabase.storage
+  // Fetch signed URLs for all images
+  let signedUrls: string[] = [];
+  if (data.design_image_paths && data.design_image_paths.length > 0) {
+    const { data: urlsData } = await supabase.storage
       .from("kavon-designs")
-      .createSignedUrl(data.design_image_path, 3600);
-    signedUrl = urlData?.signedUrl;
+      .createSignedUrls(data.design_image_paths, 3600);
+      
+    if (urlsData) {
+      signedUrls = urlsData
+        .filter(d => !d.error && d.signedUrl)
+        .map(d => d.signedUrl as string);
+    }
   }
 
   return (
@@ -177,19 +182,23 @@ export default async function StockSheetDetailsPage({
               <div className="bg-[#111111] border border-gray-800 rounded-lg p-6 h-full min-h-[400px] flex flex-col">
                 <h2 className="text-gray-500 uppercase tracking-widest text-xs font-bold mb-4 border-b border-gray-800 pb-2">Design Preview</h2>
                 
-                <div className="flex-1 bg-black border border-gray-800 rounded-lg overflow-hidden flex items-center justify-center relative">
-                  {signedUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img 
-                      src={signedUrl} 
-                      alt={data.design_name}
-                      className="w-full h-full object-contain absolute inset-0" 
-                    />
+                <div className="flex-1 flex flex-col gap-4 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
+                  {signedUrls.length > 0 ? (
+                    signedUrls.map((url, index) => (
+                      <div key={index} className="bg-black border border-gray-800 rounded-lg overflow-hidden flex items-center justify-center relative min-h-[300px]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img 
+                          src={url} 
+                          alt={`${data.design_name} ${index + 1}`}
+                          className="w-full h-full object-contain absolute inset-0" 
+                        />
+                      </div>
+                    ))
                   ) : (
-                    <div className="flex flex-col items-center justify-center text-gray-600 p-8 text-center">
+                    <div className="flex-1 bg-black border border-gray-800 rounded-lg flex flex-col items-center justify-center text-gray-600 p-8 text-center min-h-[300px]">
                       <AlertCircle size={48} className="mb-4 text-gray-700" />
                       <p className="font-medium mb-1 text-gray-400">Image Unavailable</p>
-                      <p className="text-sm">The design image could not be loaded securely.</p>
+                      <p className="text-sm">No design images found.</p>
                     </div>
                   )}
                 </div>

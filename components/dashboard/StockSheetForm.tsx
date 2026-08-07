@@ -6,15 +6,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { UploadCloud, X, Loader2 } from "lucide-react";
 import { stockSheetSchema, StockSheetFormValues } from "@/lib/validations/stock-sheet";
-import { prepareUploadAction, finalizeStockSheetAction } from "@/app/stock-sheets/new/actions";
+import { prepareUploadsAction, finalizeStockSheetAction } from "@/app/stock-sheets/new/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function StockSheetForm() {
   const router = useRouter();
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [files, setFiles] = useState<{ file: File; previewUrl: string }[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,55 +44,57 @@ export function StockSheetForm() {
   const hexColor = watch("garment_colour_hex");
 
   useEffect(() => {
-    // Release Object URL on unmount or when file changes
     return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
+      files.forEach(f => URL.revokeObjectURL(f.previewUrl));
     };
-  }, [previewUrl]);
+  }, [files]);
 
-  const validateFile = (selectedFile: File) => {
+  const processFiles = (newFiles: File[]) => {
     setFileError(null);
     const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    if (!validTypes.includes(selectedFile.type)) {
-      setFileError("Invalid file type. Only JPG, PNG, and WebP are allowed.");
-      return false;
+    
+    if (files.length + newFiles.length > 5) {
+      setFileError("You can upload a maximum of 5 images.");
+      return;
     }
-    if (selectedFile.size > 10 * 1024 * 1024) {
-      setFileError("File exceeds 10MB limit.");
-      return false;
+
+    const validFiles = newFiles.filter(f => validTypes.includes(f.type) && f.size <= 10 * 1024 * 1024);
+    if (validFiles.length < newFiles.length) {
+      setFileError("Some files were rejected. Only JPG, PNG, and WebP up to 10MB are allowed.");
     }
-    return true;
+
+    const newEntries = validFiles.map(f => ({
+      file: f,
+      previewUrl: URL.createObjectURL(f)
+    }));
+
+    setFiles(prev => [...prev, ...newEntries]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0];
-    if (selected && validateFile(selected)) {
-      setFile(selected);
-      setPreviewUrl(URL.createObjectURL(selected));
-    }
+    const selected = Array.from(e.target.files || []);
+    processFiles(selected);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const dropped = e.dataTransfer.files?.[0];
-    if (dropped && validateFile(dropped)) {
-      setFile(dropped);
-      setPreviewUrl(URL.createObjectURL(dropped));
-    }
+    const dropped = Array.from(e.dataTransfer.files || []);
+    processFiles(dropped);
   };
 
-  const clearFile = () => {
-    setFile(null);
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  const removeFile = (index: number) => {
+    setFiles(prev => {
+      const updated = [...prev];
+      URL.revokeObjectURL(updated[index].previewUrl);
+      updated.splice(index, 1);
+      return updated;
+    });
   };
 
   const onSubmit = async (data: StockSheetFormValues) => {
-    if (!file) {
-      setFileError("Design image is required");
+    if (files.length === 0) {
+      setFileError("At least one design image is required");
       return;
     }
 
@@ -101,27 +102,25 @@ export function StockSheetForm() {
     setIsSubmitting(true);
 
     try {
-      // 1. Get signed upload URL
-      const ext = file.name.split('.').pop() || "jpg";
-      const formData = new FormData(); // Dummy for now
-      const prepRes = await prepareUploadAction(formData, ext);
+      // 1. Get signed upload URLs
+      const exts = files.map(f => f.file.name.split('.').pop() || "jpg");
+      const prepRes = await prepareUploadsAction(exts);
       
-      if (prepRes.error || !prepRes.signedUrl || !prepRes.path || !prepRes.stockSheetId) {
-        throw new Error(prepRes.error || "Failed to prepare upload");
+      if (prepRes.error || !prepRes.uploads || !prepRes.stockSheetId) {
+        throw new Error(prepRes.error || "Failed to prepare uploads");
       }
 
-      // 2. Upload file directly to Supabase via signed URL
-      const uploadRes = await fetch(prepRes.signedUrl, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type,
-        },
+      // 2. Upload files directly to Supabase via signed URLs
+      const uploadPromises = files.map((f, i) => {
+        return fetch(prepRes.uploads[i].signedUrl, {
+          method: "PUT",
+          body: f.file,
+          headers: { "Content-Type": f.file.type },
+        }).then(res => {
+          if (!res.ok) throw new Error(`Failed to upload ${f.file.name}`);
+        });
       });
-
-      if (!uploadRes.ok) {
-        throw new Error("Failed to upload image securely");
-      }
+      await Promise.all(uploadPromises);
 
       // 3. Finalize DB transaction
       const submitFormData = new FormData();
@@ -134,7 +133,8 @@ export function StockSheetForm() {
       submitFormData.append("q_xl", data.q_xl.toString());
       submitFormData.append("q_xxl", data.q_xxl.toString());
 
-      const finalRes = await finalizeStockSheetAction(prepRes.stockSheetId, prepRes.path, submitFormData);
+      const imagePaths = prepRes.uploads.map(u => u.path);
+      const finalRes = await finalizeStockSheetAction(prepRes.stockSheetId, imagePaths, submitFormData);
 
       if (finalRes.error) {
         throw new Error(finalRes.error);
@@ -247,52 +247,53 @@ export function StockSheetForm() {
 
         {/* Right Column: Image Upload */}
         <div className="space-y-2">
-          <Label className="text-gray-300 block mb-1">Design Image *</Label>
-          <div 
-            className={`border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-6 text-center transition-colors relative
-              ${fileError ? 'border-[#E60000] bg-[#E60000]/5' : 'border-gray-700 hover:border-gray-500 bg-[#111111]'}
-              ${previewUrl ? 'h-auto' : 'h-64'}`}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDrop}
-          >
-            {previewUrl ? (
-              <div className="relative w-full">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={previewUrl} alt="Preview" className="w-full h-auto rounded-md mb-4" />
-                <div className="flex justify-between items-center bg-black/80 p-2 rounded absolute bottom-2 left-2 right-2">
-                  <div className="text-left text-xs overflow-hidden">
-                    <p className="text-white truncate font-medium">{file?.name}</p>
-                    <p className="text-gray-400">{(file!.size / 1024 / 1024).toFixed(2)} MB</p>
+          <Label className="text-gray-300 block mb-1">Design Images (Max 5) *</Label>
+          
+          {files.length > 0 && (
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {files.map((f, i) => (
+                <div key={i} className="relative group border border-gray-800 rounded bg-[#111111] overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={f.previewUrl} alt="Preview" className="w-full h-32 object-cover" />
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Button type="button" size="sm" variant="destructive" onClick={() => removeFile(i)} disabled={isSubmitting}>
+                      <X size={16} /> Remove
+                    </Button>
                   </div>
-                  <Button type="button" size="sm" variant="destructive" onClick={clearFile} disabled={isSubmitting}>
-                    <X size={16} />
-                  </Button>
                 </div>
-              </div>
-            ) : (
-              <>
-                <UploadCloud size={48} className="text-gray-500 mb-4" />
-                <p className="text-gray-300 font-medium mb-1">Drag and drop your image here</p>
-                <p className="text-gray-500 text-sm mb-4">Supports JPG, PNG, WebP up to 10MB</p>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-transparent border-gray-600 hover:bg-gray-800 text-white"
-                  disabled={isSubmitting}
-                >
-                  Select File
-                </Button>
-              </>
-            )}
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept="image/jpeg, image/png, image/webp" 
-              onChange={handleFileChange}
-            />
-          </div>
+              ))}
+            </div>
+          )}
+
+          {files.length < 5 && (
+            <div 
+              className={`border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-6 text-center transition-colors relative
+                ${fileError ? 'border-[#E60000] bg-[#E60000]/5' : 'border-gray-700 hover:border-gray-500 bg-[#111111]'}
+                h-32`}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+            >
+              <UploadCloud size={32} className="text-gray-500 mb-2" />
+              <p className="text-gray-300 font-medium mb-1 text-sm">Drag and drop images here</p>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-transparent border-gray-600 hover:bg-gray-800 text-white mt-2 h-8 text-xs"
+                disabled={isSubmitting}
+              >
+                Select Files
+              </Button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                multiple
+                accept="image/jpeg, image/png, image/webp" 
+                onChange={handleFileChange}
+              />
+            </div>
+          )}
           {fileError && <p className="text-[#E60000] text-sm mt-2">{fileError}</p>}
         </div>
       </div>

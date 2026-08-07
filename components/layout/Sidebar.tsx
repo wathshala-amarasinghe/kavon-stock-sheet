@@ -35,6 +35,7 @@ export function Sidebar({ userEmail }: SidebarProps) {
             alt="KAVON Logo" 
             width={100} 
             height={28} 
+            style={{ width: "auto", height: "auto" }}
             className="object-contain"
           />
         </Link>
@@ -63,6 +64,7 @@ export function Sidebar({ userEmail }: SidebarProps) {
               alt="KAVON Logo" 
               width={140} 
               height={40} 
+              style={{ width: "auto", height: "auto" }}
               className="object-contain"
             />
           </Link>
