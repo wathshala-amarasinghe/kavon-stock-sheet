@@ -108,6 +108,19 @@ export async function GET(
     // Sanitize reference number for filename
     const sanitizedRef = sheet.reference_number.replace(/[^a-zA-Z0-9-]/g, "");
     
+    // Log Activity
+    try {
+      await supabase.rpc('log_user_activity', {
+        p_action_type: isDownload ? 'pdf_downloaded' : 'pdf_previewed',
+        p_summary: `${isDownload ? 'Downloaded' : 'Previewed'} PDF for ${sheet.reference_number}`,
+        p_entity_type: 'stock_sheets',
+        p_entity_id: sheet.id,
+        p_metadata: { reference_number: sheet.reference_number, mode: isDownload ? 'download' : 'preview' }
+      });
+    } catch (e) {
+      console.error("Failed to log PDF activity", e);
+    }
+    
     return new NextResponse(pdfBuffer as unknown as BodyInit, {
       status: 200,
       headers: {

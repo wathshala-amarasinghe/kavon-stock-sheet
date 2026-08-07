@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Home, PlusCircle, LogOut } from "lucide-react";
+import { Menu, X, Home, PlusCircle, LogOut, Activity } from "lucide-react";
 import { logoutAction } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,7 @@ export function Sidebar({ userEmail }: SidebarProps) {
   const navItems = [
     { name: "Home", href: "/", icon: Home, disabled: false },
     { name: "Create Stock Sheet", href: "/stock-sheets/new", icon: PlusCircle, disabled: false },
+    { name: "Activity", href: "/activity", icon: Activity, disabled: false },
   ];
 
   const closeSidebar = () => setIsOpen(false);

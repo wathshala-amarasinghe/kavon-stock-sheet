@@ -33,6 +33,26 @@
   * Environment variable cleanup
   * Production Readiness Report compilation
 
+### Phase 8.5: Public Registration, Logout & Activity Logs [COMPLETED]
+* **Status**: Completed
+* **Objective**: Introduce public user registration, secure logout, and activity auditing.
+* **Key Components**:
+  * Registration UI (`/register`) with strict validation.
+  * Server actions for registration and logout.
+  * Migrations introducing `profiles` and `activity_logs` tables.
+  * RPC augmentations for logging stock sheet operations.
+  * `activity/page.tsx` for viewing chronological user logs.
+
+### Phase 9: Vercel Production Deployment & Launch [BLOCKED PENDING MANUAL STEPS]
+* **Status**: Completed (Documentation & Gate)
+* **Objective**: Deploy the application to Vercel and configure production environments.
+* **Key Components**:
+  * Vercel project configuration and domain setup
+  * Supabase production URL configuration
+  * Deployment Runbook creation
+  * Live launch verification checklist
+
+
 
 ## Phase 3: Dashboard & Form UI (Frontend) [COMPLETED]
 **Goal**: Build the user interface for viewing and creating stock sheets.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -103,6 +104,15 @@ export default function LoginPage() {
               "Log In"
             )}
           </Button>
+
+          <div className="text-center mt-6">
+            <p className="text-gray-400 text-sm">
+              Don&apos;t have an account?{" "}
+              <Link href="/register" className="text-[#E60000] hover:text-[#CC0000] font-bold uppercase tracking-wide">
+                Create account
+              </Link>
+            </p>
+          </div>
         </form>
       </div>
     </div>

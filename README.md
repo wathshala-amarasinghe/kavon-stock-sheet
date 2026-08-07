@@ -33,3 +33,6 @@ Internal web application for managing KAVON stock orders.
 - React Hook Form & Zod
 - @react-pdf/renderer
 - Vitest & Playwright
+
+## Deployment
+See [Deployment Runbook](docs/deployment.md) for production deployment, custom domain configuration, and launch verification instructions.

@@ -28,11 +28,33 @@ export async function loginAction(formData: FormData) {
     return { error: "Invalid credentials" };
   }
 
+  // Safe logging on successful login
+  try {
+    await supabase.rpc('log_user_activity', {
+      p_action_type: 'login',
+      p_summary: 'Logged in',
+    });
+  } catch (e) {
+    // Suppress error so login still succeeds if logging fails
+    console.error("Failed to log login activity", e);
+  }
+
   redirect("/");
 }
 
 export async function logoutAction() {
   const supabase = await createClient();
+
+  // Attempt to log out activity before terminating session
+  try {
+    await supabase.rpc('log_user_activity', {
+      p_action_type: 'logout',
+      p_summary: 'Logged out',
+    });
+  } catch (e) {
+    console.error("Failed to log logout activity", e);
+  }
+
   await supabase.auth.signOut();
   redirect("/login");
 }
