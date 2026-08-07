@@ -11,6 +11,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+const PREDEFINED_COLORS = [
+  { name: 'Black', hex: '#000000' },
+  { name: 'White', hex: '#ffffff' },
+  { name: 'Navy Blue', hex: '#000080' },
+  { name: 'Royal Blue', hex: '#4169e1' },
+  { name: 'Red', hex: '#ff0000' },
+  { name: 'Maroon', hex: '#800000' },
+  { name: 'Forest Green', hex: '#228b22' },
+  { name: 'Grey', hex: '#808080' },
+  { name: 'Charcoal', hex: '#36454f' },
+  { name: 'Yellow', hex: '#ffd700' },
+];
+
 export function StockSheetForm() {
   const router = useRouter();
   const [files, setFiles] = useState<{ file: File; previewUrl: string }[]>([]);
@@ -23,6 +36,7 @@ export function StockSheetForm() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<StockSheetFormValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -187,10 +201,26 @@ export function StockSheetForm() {
 
           <div className="space-y-2">
             <Label htmlFor="garment_colour_name" className="text-gray-300">Garment Colour Name *</Label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {PREDEFINED_COLORS.map(c => (
+                <button 
+                  key={c.name}
+                  type="button"
+                  onClick={() => {
+                    setValue("garment_colour_name", c.name, { shouldValidate: true });
+                    setValue("garment_colour_hex", c.hex, { shouldValidate: true });
+                  }}
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-gray-700 bg-[#111111] hover:bg-gray-800 text-xs transition-colors"
+                >
+                  <div className="w-3 h-3 rounded-full border border-gray-600" style={{ backgroundColor: c.hex }} />
+                  <span className="text-gray-300">{c.name}</span>
+                </button>
+              ))}
+            </div>
             <Input
               id="garment_colour_name"
               {...register("garment_colour_name")}
-              placeholder="e.g. Black, White, Burgundy"
+              placeholder="e.g. Custom Color, or pick from above"
               className="bg-black border-gray-700 text-white focus-visible:ring-[#E60000]"
               disabled={isSubmitting}
             />
@@ -201,16 +231,21 @@ export function StockSheetForm() {
             <Label htmlFor="garment_colour_hex" className="text-gray-300">Garment Colour HEX (Optional)</Label>
             <div className="flex gap-2 items-center">
               <Input
-                id="garment_colour_hex"
+                id="garment_colour_hex_text"
                 {...register("garment_colour_hex")}
                 placeholder="#A6111A"
-                className="bg-black border-gray-700 text-white focus-visible:ring-[#E60000] flex-1"
+                className="bg-black border-gray-700 text-white focus-visible:ring-[#E60000] flex-1 font-mono uppercase"
                 disabled={isSubmitting}
               />
-              <div 
-                className="w-10 h-10 rounded border border-gray-700 shrink-0" 
-                style={{ backgroundColor: hexColor?.match(/^#[0-9A-Fa-f]{6}$/) ? hexColor : 'transparent' }}
-              />
+              <div className="relative w-10 h-10 rounded border border-gray-700 overflow-hidden shrink-0">
+                <input 
+                  type="color" 
+                  id="garment_colour_hex"
+                  className="absolute -top-2 -left-2 w-14 h-14 cursor-pointer"
+                  {...register("garment_colour_hex")}
+                  disabled={isSubmitting}
+                />
+              </div>
             </div>
             {errors.garment_colour_hex && <p className="text-[#E60000] text-sm">{errors.garment_colour_hex.message}</p>}
           </div>

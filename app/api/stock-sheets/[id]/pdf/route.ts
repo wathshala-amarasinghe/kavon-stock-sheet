@@ -37,7 +37,7 @@ export async function GET(
       .eq("id", id)
       .single();
 
-    if (error || !data || data.user_id !== user.id) {
+    if (error || !data) {
       return new NextResponse("Not Found", { status: 404 });
     }
 
