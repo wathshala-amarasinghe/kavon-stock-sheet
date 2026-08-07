@@ -56,6 +56,16 @@ export function StockSheetForm() {
   const quantities = watch(["q_s", "q_m", "q_l", "q_xl", "q_xxl"]);
   const totalQuantity = quantities.reduce((acc, curr) => acc + (Number(curr) || 0), 0);
   const hexColor = watch("garment_colour_hex");
+  const colourName = watch("garment_colour_name");
+
+  useEffect(() => {
+    if (colourName) {
+      const matched = PREDEFINED_COLORS.find(c => c.name.toLowerCase() === colourName.toLowerCase());
+      if (matched) {
+        setValue("garment_colour_hex", matched.hex, { shouldValidate: true, shouldDirty: true });
+      }
+    }
+  }, [colourName, setValue]);
 
   useEffect(() => {
     return () => {
@@ -219,11 +229,17 @@ export function StockSheetForm() {
             </div>
             <Input
               id="garment_colour_name"
+              list="color-suggestions"
               {...register("garment_colour_name")}
               placeholder="e.g. Custom Color, or pick from above"
               className="bg-black border-gray-700 text-white focus-visible:ring-[#E60000]"
               disabled={isSubmitting}
             />
+            <datalist id="color-suggestions">
+              {PREDEFINED_COLORS.map(c => (
+                <option key={c.name} value={c.name} />
+              ))}
+            </datalist>
             {errors.garment_colour_name && <p className="text-[#E60000] text-sm">{errors.garment_colour_name.message}</p>}
           </div>
 
@@ -242,7 +258,8 @@ export function StockSheetForm() {
                   type="color" 
                   id="garment_colour_hex"
                   className="absolute -top-2 -left-2 w-14 h-14 cursor-pointer"
-                  {...register("garment_colour_hex")}
+                  value={hexColor?.match(/^#[0-9A-Fa-f]{6}$/) ? hexColor : "#000000"}
+                  onChange={(e) => setValue("garment_colour_hex", e.target.value, { shouldValidate: true, shouldDirty: true })}
                   disabled={isSubmitting}
                 />
               </div>

@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, MailCheck } from "lucide-react";
+import { Loader2, MailCheck, Eye, EyeOff } from "lucide-react";
 import { registerSchema } from "./schema";
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -17,6 +17,8 @@ export function RegisterForm({ action }: { action: (formData: FormData) => Promi
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -96,13 +98,22 @@ export function RegisterForm({ action }: { action: (formData: FormData) => Promi
 
       <div className="space-y-2">
         <Label htmlFor="password" className="text-gray-300">Password</Label>
-        <Input
-          id="password"
-          type="password"
-          className="bg-black border-gray-700 text-white focus-visible:ring-[#E60000]"
-          autoComplete="new-password"
-          {...register("password")}
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            className="bg-black border-gray-700 text-white focus-visible:ring-[#E60000] pr-10"
+            autoComplete="new-password"
+            {...register("password")}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
         {errors.password && (
           <p className="text-[#E60000] text-sm mt-1" aria-live="polite">{errors.password.message}</p>
         )}
@@ -110,13 +121,22 @@ export function RegisterForm({ action }: { action: (formData: FormData) => Promi
 
       <div className="space-y-2">
         <Label htmlFor="confirmPassword" className="text-gray-300">Confirm Password</Label>
-        <Input
-          id="confirmPassword"
-          type="password"
-          className="bg-black border-gray-700 text-white focus-visible:ring-[#E60000]"
-          autoComplete="new-password"
-          {...register("confirmPassword")}
-        />
+        <div className="relative">
+          <Input
+            id="confirmPassword"
+            type={showConfirmPassword ? "text" : "password"}
+            className="bg-black border-gray-700 text-white focus-visible:ring-[#E60000] pr-10"
+            autoComplete="new-password"
+            {...register("confirmPassword")}
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
         {errors.confirmPassword && (
           <p className="text-[#E60000] text-sm mt-1" aria-live="polite">{errors.confirmPassword.message}</p>
         )}
