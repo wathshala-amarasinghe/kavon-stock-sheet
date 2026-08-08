@@ -78,6 +78,11 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     color: '#111111'
   },
+  colorText: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: '#111111'
+  },
   colorSwatch: {
     width: 12,
     height: 12,
@@ -243,7 +248,7 @@ export function StockSheetDocument({ sheet, imageBuffers, logoUrl, total }: Stoc
                   {c.hex && (
                     <View style={[styles.colorSwatch, { backgroundColor: c.hex }]} />
                   )}
-                  <Text style={styles.infoValue}>{c.name}</Text>
+                  <Text style={styles.colorText}>{c.name}</Text>
                 </View>
               ))}
             </View>
