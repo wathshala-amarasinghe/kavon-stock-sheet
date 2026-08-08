@@ -16,7 +16,6 @@ export function StockSheetCard({ sheet }: StockSheetCardProps) {
       {/* Top Banner / Image Area */}
       <div className="relative h-48 bg-[#1A1A1A] border-b border-gray-800 flex items-center justify-center overflow-hidden">
         {sheet.signed_image_urls && sheet.signed_image_urls.length > 0 ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={sheet.signed_image_urls[0]}
             alt={sheet.design_name}
@@ -49,15 +48,19 @@ export function StockSheetCard({ sheet }: StockSheetCardProps) {
             {sheet.design_name}
           </h3>
           
-          <div className="flex items-center mt-2 text-sm text-gray-400">
-            {sheet.garment_colour_hex && (
-              <div 
-                className="w-4 h-4 rounded-full mr-2 border border-gray-700"
-                style={{ backgroundColor: sheet.garment_colour_hex }}
-                title={sheet.garment_colour_hex}
-              />
-            )}
-            <span className="truncate">{sheet.garment_colour_name}</span>
+          <div className="flex flex-wrap items-center mt-2 gap-2 text-sm text-gray-400">
+            {sheet.garment_colours?.map((c, i) => (
+              <div key={i} className="flex items-center bg-[#1A1A1A] px-2 py-1 rounded-full border border-gray-800">
+                {c.hex && (
+                  <div 
+                    className="w-3 h-3 rounded-full mr-1.5 border border-gray-700"
+                    style={{ backgroundColor: c.hex }}
+                    title={c.hex}
+                  />
+                )}
+                <span className="truncate text-xs">{c.name}</span>
+              </div>
+            ))}
           </div>
         </div>
 

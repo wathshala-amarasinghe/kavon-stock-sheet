@@ -7,8 +7,6 @@ import { PlusCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
-export const instant = false;
-
 export default async function Home({
   searchParams,
 }: {
@@ -103,7 +101,7 @@ export default async function Home({
   );
 
   return (
-    <div className="flex min-h-screen bg-[#0A0A0A]">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-[#0A0A0A]">
       <Sidebar userEmail={user.email || ""} />
       
       <main className="flex-1 lg:pl-64 flex flex-col min-w-0">

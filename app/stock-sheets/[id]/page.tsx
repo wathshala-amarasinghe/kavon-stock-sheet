@@ -8,8 +8,6 @@ import { z } from "zod";
 import { StockSheetQuantity } from "@/types";
 import { ArchiveRestoreActions } from "@/components/dashboard/ArchiveRestoreActions";
 
-export const instant = false;
-
 export default async function StockSheetDetailsPage({
   params,
 }: {
@@ -67,7 +65,7 @@ export default async function StockSheetDetailsPage({
   }
 
   return (
-    <div className="flex min-h-screen bg-[#0A0A0A]">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-[#0A0A0A]">
       <Sidebar userEmail={user.email || ""} />
       
       <main className="flex-1 lg:pl-64 flex flex-col min-w-0">
@@ -135,16 +133,20 @@ export default async function StockSheetDetailsPage({
                     <p className="text-white font-medium">{data.design_name}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500 text-sm mb-1">Garment Colour</p>
-                    <div className="flex items-center gap-3">
-                      <p className="text-white font-medium">{data.garment_colour_name}</p>
-                      {data.garment_colour_hex && (
-                        <div 
-                          className="w-6 h-6 rounded border border-gray-700 shadow-inner" 
-                          style={{ backgroundColor: data.garment_colour_hex }} 
-                          title={data.garment_colour_hex}
-                        />
-                      )}
+                    <p className="text-gray-500 text-sm mb-1">Garment Colours</p>
+                    <div className="flex flex-wrap gap-2">
+                      {data.garment_colours?.map((c: { name: string, hex: string | null }, i: number) => (
+                        <div key={i} className="flex items-center gap-2 bg-[#1A1A1A] px-2.5 py-1.5 rounded-md border border-gray-800">
+                          {c.hex && (
+                            <div 
+                              className="w-4 h-4 rounded border border-gray-700 shadow-inner shrink-0" 
+                              style={{ backgroundColor: c.hex }} 
+                              title={c.hex}
+                            />
+                          )}
+                          <p className="text-white font-medium text-sm">{c.name}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                   <div>
@@ -160,7 +162,7 @@ export default async function StockSheetDetailsPage({
 
               <div className="bg-[#111111] border border-gray-800 rounded-lg p-6">
                 <h2 className="text-gray-500 uppercase tracking-widest text-xs font-bold mb-4 border-b border-gray-800 pb-2">Quantities</h2>
-                <div className="grid grid-cols-5 gap-2 mb-6">
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-6">
                   {(['S', 'M', 'L', 'XL', 'XXL']).map((size) => (
                     <div key={size} className="bg-black border border-gray-800 rounded p-3 text-center">
                       <p className="text-gray-500 text-xs mb-1 font-bold">{size}</p>
@@ -186,7 +188,6 @@ export default async function StockSheetDetailsPage({
                   {signedUrls.length > 0 ? (
                     signedUrls.map((url, index) => (
                       <div key={index} className="bg-black border border-gray-800 rounded-lg overflow-hidden flex items-center justify-center relative min-h-[300px]">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img 
                           src={url} 
                           alt={`${data.design_name} ${index + 1}`}

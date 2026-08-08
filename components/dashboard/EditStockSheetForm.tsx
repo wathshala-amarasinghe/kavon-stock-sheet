@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { UploadCloud, X, Loader2 } from "lucide-react";
@@ -46,14 +46,15 @@ export function EditStockSheetForm({ stockSheetId, initialData, quantitiesMap, e
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors },
   } = useForm<StockSheetFormValues>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(stockSheetSchema) as any,
+    resolver: zodResolver(stockSheetSchema) as Resolver<StockSheetFormValues>,
     defaultValues: {
       design_name: initialData.design_name,
-      garment_colour_name: initialData.garment_colour_name,
-      garment_colour_hex: initialData.garment_colour_hex || "",
+      garment_colours: initialData.garment_colours && initialData.garment_colours.length > 0 
+        ? initialData.garment_colours 
+        : [{ name: "", hex: "" }],
       q_s: quantitiesMap["S"] || 0,
       q_m: quantitiesMap["M"] || 0,
       q_l: quantitiesMap["L"] || 0,
@@ -64,17 +65,10 @@ export function EditStockSheetForm({ stockSheetId, initialData, quantitiesMap, e
 
   const quantities = watch(["q_s", "q_m", "q_l", "q_xl", "q_xxl"]);
   const totalQuantity = quantities.reduce((acc, curr) => acc + (Number(curr) || 0), 0);
-  const hexColor = watch("garment_colour_hex");
-  const colourName = watch("garment_colour_name");
-
-  useEffect(() => {
-    if (colourName) {
-      const matched = PREDEFINED_COLORS.find(c => c.name.toLowerCase() === colourName.toLowerCase());
-      if (matched) {
-        setValue("garment_colour_hex", matched.hex, { shouldValidate: true, shouldDirty: true });
-      }
-    }
-  }, [colourName, setValue]);
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "garment_colours"
+  });
 
   useEffect(() => {
     return () => {
@@ -145,7 +139,6 @@ export function EditStockSheetForm({ stockSheetId, initialData, quantitiesMap, e
     try {
       const newlyUploadedPaths: string[] = [];
 
-      // 1. If there are new files, upload them
       if (newFiles.length > 0) {
         const exts = newFiles.map(f => f.file.name.split('.').pop() || "jpg");
         const prepRes = await prepareUpdateUploadsAction(stockSheetId, exts);
@@ -167,12 +160,9 @@ export function EditStockSheetForm({ stockSheetId, initialData, quantitiesMap, e
         });
         await Promise.all(uploadPromises);
       }
-
-      // 2. Finalize DB transaction
       const submitFormData = new FormData();
       submitFormData.append("design_name", data.design_name);
-      submitFormData.append("garment_colour_name", data.garment_colour_name);
-      if (data.garment_colour_hex) submitFormData.append("garment_colour_hex", data.garment_colour_hex);
+      submitFormData.append("garment_colours", JSON.stringify(data.garment_colours));
       submitFormData.append("q_s", data.q_s.toString());
       submitFormData.append("q_m", data.q_m.toString());
       submitFormData.append("q_l", data.q_l.toString());
@@ -207,8 +197,7 @@ export function EditStockSheetForm({ stockSheetId, initialData, quantitiesMap, e
   };
 
   return (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-8 pb-10">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 pb-10">
       {globalError && (
         <div className="bg-[#E60000]/10 border border-[#E60000]/20 text-[#E60000] p-4 rounded text-sm font-medium">
           {globalError}
@@ -216,7 +205,6 @@ export function EditStockSheetForm({ stockSheetId, initialData, quantitiesMap, e
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
         <div className="space-y-6">
           <div className="space-y-2">
             <Label className="text-gray-400 uppercase tracking-widest text-xs">Reference Number</Label>
@@ -239,62 +227,77 @@ export function EditStockSheetForm({ stockSheetId, initialData, quantitiesMap, e
             {errors.design_name && <p className="text-[#E60000] text-sm">{errors.design_name.message}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="garment_colour_name" className="text-gray-300">Garment Colour Name *</Label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {PREDEFINED_COLORS.map(c => (
-                <button 
-                  key={c.name}
-                  type="button"
-                  onClick={() => {
-                    setValue("garment_colour_name", c.name, { shouldValidate: true });
-                    setValue("garment_colour_hex", c.hex, { shouldValidate: true });
-                  }}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-gray-700 bg-[#111111] hover:bg-gray-800 text-xs transition-colors"
-                >
-                  <div className="w-3 h-3 rounded-full border border-gray-600" style={{ backgroundColor: c.hex }} />
-                  <span className="text-gray-300">{c.name}</span>
-                </button>
-              ))}
+          <div className="bg-[#111111] border border-gray-800 p-4 rounded-lg space-y-6">
+            <div className="flex justify-between items-center mb-2">
+              <Label className="text-gray-300 block">Garment Colours *</Label>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                onClick={() => append({ name: "", hex: "" })}
+                className="bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white h-7 text-xs"
+                disabled={isSubmitting || fields.length >= 10}
+              >
+                + Add Colour
+              </Button>
             </div>
-            <Input
-              id="garment_colour_name"
-              list="color-suggestions"
-              {...register("garment_colour_name")}
-              placeholder="e.g. Custom Color, or pick from above"
-              className="bg-black border-gray-700 text-white focus-visible:ring-[#E60000]"
-              disabled={isSubmitting}
-            />
-            <datalist id="color-suggestions">
-              {PREDEFINED_COLORS.map(c => (
-                <option key={c.name} value={c.name} />
-              ))}
-            </datalist>
-            {errors.garment_colour_name && <p className="text-[#E60000] text-sm">{errors.garment_colour_name.message}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="garment_colour_hex" className="text-gray-300">Garment Colour HEX (Optional)</Label>
-            <div className="flex gap-2 items-center">
-              <Input
-                id="garment_colour_hex_text"
-                {...register("garment_colour_hex")}
-                placeholder="#A6111A"
-                className="bg-black border-gray-700 text-white focus-visible:ring-[#E60000] flex-1 font-mono uppercase"
-                disabled={isSubmitting}
-              />
-              <div className="relative w-10 h-10 rounded border border-gray-700 overflow-hidden shrink-0">
-                <input 
-                  type="color" 
-                  id="garment_colour_hex"
-                  className="absolute -top-2 -left-2 w-14 h-14 cursor-pointer"
-                  value={hexColor?.match(/^#[0-9A-Fa-f]{6}$/) ? hexColor : "#000000"}
-                  onChange={(e) => setValue("garment_colour_hex", e.target.value, { shouldValidate: true, shouldDirty: true })}
-                  disabled={isSubmitting}
-                />
+            
+            {fields.map((field, index) => (
+              <div key={field.id} className="p-3 bg-black border border-gray-800 rounded-md relative group">
+                {fields.length > 1 && (
+                  <button 
+                    type="button" 
+                    onClick={() => remove(index)}
+                    className="absolute -top-2 -right-2 bg-[#E60000] text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-[#CC0000]"
+                    disabled={isSubmitting}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+                
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-gray-500 text-xs">Name *</Label>
+                    <Input
+                      {...register(`garment_colours.${index}.name`)}
+                      placeholder="e.g. Navy Blue"
+                      className="bg-[#111111] border-gray-700 text-white focus-visible:ring-[#E60000] h-8 text-sm"
+                      disabled={isSubmitting}
+                    />
+                    {errors.garment_colours?.[index]?.name && (
+                      <p className="text-[#E60000] text-xs">{errors.garment_colours[index].name.message}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-gray-500 text-xs">HEX Code (Optional)</Label>
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        {...register(`garment_colours.${index}.hex`)}
+                        placeholder="#000080"
+                        className="bg-[#111111] border-gray-700 text-white focus-visible:ring-[#E60000] h-8 text-sm font-mono uppercase"
+                        disabled={isSubmitting}
+                      />
+                      <div className="relative w-8 h-8 rounded border border-gray-700 overflow-hidden shrink-0">
+                        <input 
+                          type="color" 
+                          className="absolute -top-2 -left-2 w-12 h-12 cursor-pointer"
+                          value={(watch(`garment_colours.${index}.hex`) ?? '').match(/^#[0-9A-Fa-f]{6}$/) ? (watch(`garment_colours.${index}.hex`) as string) : "#000000"}
+                          onChange={(e) => setValue(`garment_colours.${index}.hex`, e.target.value, { shouldValidate: true, shouldDirty: true })}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                    </div>
+                    {errors.garment_colours?.[index]?.hex && (
+                      <p className="text-[#E60000] text-xs">{errors.garment_colours[index].hex.message}</p>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-            {errors.garment_colour_hex && <p className="text-[#E60000] text-sm">{errors.garment_colour_hex.message}</p>}
+            ))}
+            {errors.garment_colours?.root && (
+              <p className="text-[#E60000] text-sm">{errors.garment_colours.root.message}</p>
+            )}
           </div>
 
           <div className="bg-[#111111] border border-gray-800 p-4 rounded-lg space-y-4">
@@ -331,10 +334,8 @@ export function EditStockSheetForm({ stockSheetId, initialData, quantitiesMap, e
           
           {(existingImgs.length > 0 || newFiles.length > 0) && (
             <div className="grid grid-cols-2 gap-4 mb-4">
-              {/* Existing Images */}
               {existingImgs.map((img, i) => (
                 <div key={`existing-${i}`} className="relative group border border-gray-800 rounded bg-[#111111] overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={img.url} alt={`Existing ${i}`} className="w-full h-32 object-cover opacity-80" />
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <Button type="button" size="sm" variant="destructive" onClick={() => removeExistingImg(i)} disabled={isSubmitting}>
@@ -344,10 +345,8 @@ export function EditStockSheetForm({ stockSheetId, initialData, quantitiesMap, e
                 </div>
               ))}
               
-              {/* New Files */}
               {newFiles.map((f, i) => (
                 <div key={`new-${i}`} className="relative group border border-[#E60000] rounded bg-[#111111] overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={f.previewUrl} alt={`New Preview ${i}`} className="w-full h-32 object-cover" />
                   <div className="absolute top-1 left-1 bg-[#E60000] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">NEW</div>
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

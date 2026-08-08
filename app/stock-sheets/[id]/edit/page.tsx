@@ -1,14 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { EditStockSheetForm } from "@/components/dashboard/EditStockSheetForm"; // TS refresh
+import { EditStockSheetForm } from "@/components/dashboard/EditStockSheetForm";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { z } from "zod";
 import { StockSheetQuantity } from "@/types";
-
-export const instant = false;
 
 export default async function EditStockSheetPage({
   params,
@@ -69,7 +67,7 @@ export default async function EditStockSheetPage({
   }
 
   return (
-    <div className="flex min-h-screen bg-[#0A0A0A]">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-[#0A0A0A]">
       <Sidebar userEmail={user.email || ""} />
       
       <main className="flex-1 lg:pl-64 flex flex-col min-w-0">

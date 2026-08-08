@@ -72,8 +72,7 @@ export async function updateStockSheetAction(
 
   const rawData = {
     design_name: formData.get("design_name"),
-    garment_colour_name: formData.get("garment_colour_name"),
-    garment_colour_hex: formData.get("garment_colour_hex"),
+    garment_colours: JSON.parse(formData.get("garment_colours") as string || "[]"),
     q_s: formData.get("q_s"),
     q_m: formData.get("q_m"),
     q_l: formData.get("q_l"),
@@ -91,7 +90,12 @@ export async function updateStockSheetAction(
   }
 
   const data = parsed.data;
-  const hexValue = data.garment_colour_hex ? data.garment_colour_hex.toUpperCase() : null;
+
+  // Format hex to uppercase if provided
+  const formattedColours = data.garment_colours.map(c => ({
+    name: c.name,
+    hex: c.hex ? c.hex.toUpperCase() : null
+  }));
 
   // Retrieve the old image paths BEFORE updating, so we can delete removed ones later
   const { data: existing } = await supabase
@@ -107,8 +111,7 @@ export async function updateStockSheetAction(
   const { data: rpcData, error: rpcError } = await supabase.rpc("update_stock_sheet_transaction", {
     p_sheet_id: stockSheetId,
     p_d_name: data.design_name,
-    p_garment_c_name: data.garment_colour_name,
-    p_garment_c_hex: hexValue,
+    p_garment_colours: formattedColours,
     p_img_paths: finalImagePaths,
     p_q_s: data.q_s,
     p_q_m: data.q_m,

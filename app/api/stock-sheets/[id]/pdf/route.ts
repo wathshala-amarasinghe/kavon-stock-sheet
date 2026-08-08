@@ -95,22 +95,17 @@ export async function GET(
       }
     }
 
-    // Use local file system path for the logo instead of a URL to avoid SSR loopback timeouts
     const path = await import('path');
     const logoUrl = path.join(process.cwd(), 'public', 'brand', 'logo.png');
 
-    // Render PDF
     const pdfBuffer = await renderToBuffer(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      React.createElement(StockSheetDocument, { sheet, imageBuffers: imageBuffersBase64, logoUrl, total }) as any
+      React.createElement(StockSheetDocument, { sheet, imageBuffers: imageBuffersBase64, logoUrl, total }) as ReturnType<typeof React.createElement>
     );
 
     const isDownload = request.nextUrl.searchParams.get("download") === "1";
     const disposition = isDownload ? "attachment" : "inline";
-    // Sanitize reference number for filename
     const sanitizedRef = sheet.reference_number.replace(/[^a-zA-Z0-9-]/g, "");
     
-    // Log Activity
     try {
       await supabase.rpc('log_user_activity', {
         p_action_type: isDownload ? 'pdf_downloaded' : 'pdf_previewed',

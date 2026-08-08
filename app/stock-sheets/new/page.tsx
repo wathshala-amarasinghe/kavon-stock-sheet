@@ -3,8 +3,6 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { StockSheetForm } from "@/components/dashboard/StockSheetForm";
 
-export const instant = false;
-
 export default async function NewStockSheetPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -14,7 +12,7 @@ export default async function NewStockSheetPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#0A0A0A]">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-[#0A0A0A]">
       <Sidebar userEmail={user.email || ""} />
       
       <main className="flex-1 lg:pl-64 flex flex-col min-w-0">

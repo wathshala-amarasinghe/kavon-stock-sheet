@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, ExternalLink } from "lucide-react";
 import { z } from "zod";
 
-export const instant = false;
-
 export default async function PDFPreviewPage({
   params,
 }: {
@@ -40,7 +38,7 @@ export default async function PDFPreviewPage({
   }
 
   return (
-    <div className="flex min-h-screen bg-[#0A0A0A]">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-[#0A0A0A]">
       <Sidebar userEmail={user.email || ""} />
       
       <main className="flex-1 lg:pl-64 flex flex-col min-w-0 h-screen overflow-hidden">

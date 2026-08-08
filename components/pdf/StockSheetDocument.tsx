@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/alt-text */
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { StockSheet } from '@/types';
@@ -88,7 +87,14 @@ const styles = StyleSheet.create({
   },
   colorContainer: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  colorItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 10
   },
   imageSection: {
     alignItems: 'center',
@@ -230,12 +236,16 @@ export function StockSheetDocument({ sheet, imageBuffers, logoUrl, total }: Stoc
             <Text style={styles.infoValue}>{sheet.design_name}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Garment Colour</Text>
+            <Text style={styles.infoLabel}>Garment Colours</Text>
             <View style={styles.colorContainer}>
-              {sheet.garment_colour_hex && (
-                <View style={[styles.colorSwatch, { backgroundColor: sheet.garment_colour_hex }]} />
-              )}
-              <Text style={styles.infoValue}>{sheet.garment_colour_name}</Text>
+              {sheet.garment_colours?.map((c, idx) => (
+                <View key={idx} style={styles.colorItem}>
+                  {c.hex && (
+                    <View style={[styles.colorSwatch, { backgroundColor: c.hex }]} />
+                  )}
+                  <Text style={styles.infoValue}>{c.name}</Text>
+                </View>
+              ))}
             </View>
           </View>
           <View style={styles.infoRow}>

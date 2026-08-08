@@ -1,18 +1,20 @@
--- Migration to support multiple images per stock sheet
-
-ALTER TABLE stock_sheets ADD COLUMN IF NOT EXISTS design_image_paths TEXT[] DEFAULT '{}';
+ALTER TABLE stock_sheets ADD COLUMN garment_colours JSONB NOT NULL DEFAULT '[]'::jsonb;
 
 UPDATE stock_sheets 
-SET design_image_paths = ARRAY[design_image_path] 
-WHERE design_image_path IS NOT NULL;
+SET garment_colours = jsonb_build_array(
+  jsonb_build_object(
+    'name', garment_colour_name, 
+    'hex', COALESCE(garment_colour_hex, '')
+  )
+);
 
-ALTER TABLE stock_sheets DROP COLUMN IF EXISTS design_image_path;
+ALTER TABLE stock_sheets DROP COLUMN garment_colour_name;
+ALTER TABLE stock_sheets DROP COLUMN garment_colour_hex;
 
 CREATE OR REPLACE FUNCTION create_stock_sheet_transaction(
   sheet_id UUID,
   d_name TEXT,
-  garment_c_name TEXT,
-  garment_c_hex TEXT,
+  garment_colours JSONB,
   img_paths TEXT[],
   q_s INTEGER,
   q_m INTEGER,
@@ -48,16 +50,14 @@ BEGIN
     id,
     user_id,
     design_name,
-    garment_colour_name,
-    garment_colour_hex,
+    garment_colours,
     design_image_paths,
     status
   ) VALUES (
     sheet_id,
     v_user_id,
     d_name,
-    garment_c_name,
-    garment_c_hex,
+    garment_colours,
     COALESCE(img_paths, '{}'),
     'ACTIVE'
   ) RETURNING stock_sheets.reference_number INTO v_reference;
@@ -85,9 +85,9 @@ $$;
 CREATE OR REPLACE FUNCTION update_stock_sheet_transaction(
   p_sheet_id UUID,
   p_d_name TEXT,
-  p_garment_c_name TEXT,
-  p_garment_c_hex TEXT,
+  p_garment_colours JSONB,
   p_img_paths TEXT[],
+  p_new_uploaded_paths TEXT[],
   p_q_s INTEGER,
   p_q_m INTEGER,
   p_q_l INTEGER,
@@ -103,11 +103,8 @@ DECLARE
   v_total INTEGER;
   v_reference TEXT;
   v_status TEXT;
-  v_sheet_owner UUID;
-  v_old_img_paths TEXT[];
   v_action_type TEXT;
   v_summary TEXT;
-  v_images_changed BOOLEAN;
 BEGIN
   v_user_id := auth.uid();
   
@@ -115,17 +112,13 @@ BEGIN
     RAISE EXCEPTION 'Not authenticated';
   END IF;
 
-  SELECT stock_sheets.user_id, stock_sheets.status, stock_sheets.reference_number, stock_sheets.design_image_paths
-  INTO v_sheet_owner, v_status, v_reference, v_old_img_paths
+  SELECT stock_sheets.status, stock_sheets.reference_number
+  INTO v_status, v_reference
   FROM stock_sheets
   WHERE stock_sheets.id = p_sheet_id;
 
-  IF v_sheet_owner IS NULL THEN
+  IF v_reference IS NULL THEN
     RAISE EXCEPTION 'Stock sheet not found';
-  END IF;
-
-  IF v_sheet_owner != v_user_id THEN
-    RAISE EXCEPTION 'Not authorized to edit this stock sheet';
   END IF;
 
   IF v_status = 'ARCHIVED' THEN
@@ -140,13 +133,10 @@ BEGIN
   IF v_total <= 0 THEN
     RAISE EXCEPTION 'Total quantity must be greater than 0';
   END IF;
-  
-  v_images_changed := (p_img_paths IS NOT NULL AND p_img_paths != v_old_img_paths);
 
   UPDATE stock_sheets SET
     design_name = p_d_name,
-    garment_colour_name = p_garment_c_name,
-    garment_colour_hex = p_garment_c_hex,
+    garment_colours = p_garment_colours,
     design_image_paths = COALESCE(p_img_paths, design_image_paths)
   WHERE stock_sheets.id = p_sheet_id;
 
@@ -157,9 +147,9 @@ BEGIN
   UPDATE stock_sheet_quantities SET quantity = p_q_xxl WHERE stock_sheet_id = p_sheet_id AND size = 'XXL';
 
   -- Log activity
-  IF v_images_changed THEN
+  IF array_length(p_new_uploaded_paths, 1) > 0 THEN
       v_action_type := 'design_image_replaced';
-      v_summary := 'Updated design images for ' || v_reference;
+      v_summary := 'Replaced/Added design image(s) for ' || v_reference;
   ELSE
       v_action_type := 'stock_sheet_updated';
       v_summary := 'Updated stock sheet ' || v_reference;
@@ -170,7 +160,7 @@ BEGIN
       v_summary,
       'stock_sheets',
       p_sheet_id,
-      jsonb_build_object('reference_number', v_reference, 'design_name', p_d_name, 'images_changed', v_images_changed)
+      jsonb_build_object('reference_number', v_reference, 'design_name', p_d_name)
   );
 
   RETURN QUERY SELECT p_sheet_id, v_reference;

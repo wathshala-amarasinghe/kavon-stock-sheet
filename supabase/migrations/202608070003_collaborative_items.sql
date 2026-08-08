@@ -1,4 +1,3 @@
--- 1. Update RLS policies for stock_sheets
 DROP POLICY IF EXISTS "Users can view their own stock sheets" ON stock_sheets;
 DROP POLICY IF EXISTS "Users can insert their own stock sheets" ON stock_sheets;
 DROP POLICY IF EXISTS "Users can update their own stock sheets" ON stock_sheets;
@@ -19,7 +18,6 @@ TO authenticated
 USING (true)
 WITH CHECK (true);
 
--- 2. Update RLS policies for stock_sheet_quantities
 DROP POLICY IF EXISTS "Users can view their own stock sheet quantities" ON stock_sheet_quantities;
 DROP POLICY IF EXISTS "Users can insert their own stock sheet quantities" ON stock_sheet_quantities;
 DROP POLICY IF EXISTS "Users can update their own stock sheet quantities" ON stock_sheet_quantities;
@@ -46,7 +44,6 @@ ON stock_sheet_quantities FOR DELETE
 TO authenticated
 USING (true);
 
--- 3. Update Storage Policies for kavon-designs bucket
 DROP POLICY IF EXISTS "Users can view their own images" ON storage.objects;
 DROP POLICY IF EXISTS "Users can upload their own images" ON storage.objects;
 DROP POLICY IF EXISTS "Users can update their own images" ON storage.objects;
@@ -73,7 +70,6 @@ ON storage.objects FOR DELETE
 TO authenticated
 USING (bucket_id = 'kavon-designs');
 
--- 4. Update update_stock_sheet_transaction to remove ownership check
 CREATE OR REPLACE FUNCTION update_stock_sheet_transaction(
   p_sheet_id UUID,
   p_d_name TEXT,
@@ -162,7 +158,6 @@ END;
 $$;
 
 
--- 5. Update set_stock_sheet_archive_state to remove ownership check
 CREATE OR REPLACE FUNCTION set_stock_sheet_archive_state(
   p_stock_sheet_id UUID,
   p_archive BOOLEAN

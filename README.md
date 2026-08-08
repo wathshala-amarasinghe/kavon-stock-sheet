@@ -2,7 +2,7 @@
 
 Internal web application for managing KAVON stock orders.
 
-## Project Setup Instructions
+## Project Setup
 
 1. **Clone the repository**
    ```bash
@@ -26,13 +26,9 @@ Internal web application for managing KAVON stock orders.
    npm run dev
    ```
 
-## Technologies Used
+## Technologies
 - Next.js App Router (TypeScript)
 - Tailwind CSS & shadcn/ui
 - Supabase (PostgreSQL, Auth, Storage)
 - React Hook Form & Zod
 - @react-pdf/renderer
-- Vitest & Playwright
-
-## Deployment
-See [Deployment Runbook](docs/deployment.md) for production deployment, custom domain configuration, and launch verification instructions.

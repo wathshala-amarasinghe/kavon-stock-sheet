@@ -36,7 +36,7 @@ export function DashboardClient({ initialSheets, currentStatus }: DashboardClien
     const matchesSearch = 
       sheet.reference_number.toLowerCase().includes(searchLower) ||
       sheet.design_name.toLowerCase().includes(searchLower) ||
-      sheet.garment_colour_name.toLowerCase().includes(searchLower);
+      (sheet.garment_colours && sheet.garment_colours.some(c => c.name.toLowerCase().includes(searchLower)));
       
     return matchesSearch;
   });

@@ -28,7 +28,7 @@ export function Sidebar({ userEmail }: SidebarProps) {
   return (
     <>
       {/* Mobile Header */}
-      <div className="lg:hidden flex items-center justify-between p-4 bg-[#0A0A0A] border-b border-gray-800">
+      <div className="lg:hidden sticky top-0 z-50 flex items-center justify-between p-4 bg-[#0A0A0A] border-b border-gray-800 h-[60px]">
         <Link href="/" className="flex items-center">
           <Image 
             src="/brand/logo.png" 
@@ -47,17 +47,18 @@ export function Sidebar({ userEmail }: SidebarProps) {
       {/* Sidebar Overlay (Mobile) */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 top-[60px] bg-black/50 z-40 lg:hidden"
           onClick={closeSidebar}
         />
       )}
 
       {/* Sidebar Content */}
       <div className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-[#111111] border-r border-gray-800 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0",
+        "fixed inset-y-0 left-0 z-40 w-64 bg-[#111111] border-r border-gray-800 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 lg:z-50",
+        "top-[60px] lg:top-0",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="p-6">
+        <div className="p-6 hidden lg:block">
           <Link href="/" className="block mb-2">
             <Image 
               src="/brand/logo.png" 

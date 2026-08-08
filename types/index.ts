@@ -7,8 +7,7 @@ export interface StockSheet {
   id: string;
   reference_number: string;
   design_name: string;
-  garment_colour_name: string;
-  garment_colour_hex: string | null;
+  garment_colours: { name: string; hex: string | null }[];
   design_image_paths: string[];
   status: "ACTIVE" | "ARCHIVED";
   created_at: string;

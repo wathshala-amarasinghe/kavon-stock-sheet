@@ -51,8 +51,7 @@ export async function finalizeStockSheetAction(stockSheetId: string, imagePaths:
 
   const rawData = {
     design_name: formData.get("design_name"),
-    garment_colour_name: formData.get("garment_colour_name"),
-    garment_colour_hex: formData.get("garment_colour_hex"),
+    garment_colours: JSON.parse(formData.get("garment_colours") as string || "[]"),
     q_s: formData.get("q_s"),
     q_m: formData.get("q_m"),
     q_l: formData.get("q_l"),
@@ -71,14 +70,18 @@ export async function finalizeStockSheetAction(stockSheetId: string, imagePaths:
   }
 
   const data = parsed.data;
-  const hexValue = data.garment_colour_hex ? data.garment_colour_hex.toUpperCase() : null;
+
+  // Format hex to uppercase if provided
+  const formattedColours = data.garment_colours.map(c => ({
+    name: c.name,
+    hex: c.hex ? c.hex.toUpperCase() : null
+  }));
 
   // Call the transactional RPC
   const { data: rpcData, error: rpcError } = await supabase.rpc("create_stock_sheet_transaction", {
     sheet_id: stockSheetId,
     d_name: data.design_name,
-    garment_c_name: data.garment_colour_name,
-    garment_c_hex: hexValue,
+    garment_colours: formattedColours,
     img_paths: imagePaths,
     q_s: data.q_s,
     q_m: data.q_m,
